@@ -3,6 +3,7 @@ import reactLogo from './assets/react.svg'
 import viteLogo from './assets/vite.svg'
 import heroImg from './assets/hero.png'
 import './App.css'
+import QueryRunner from './components/QueryRunner'
 
 function App() {
   const [count, setCount] = useState(0)
@@ -28,6 +29,10 @@ function App() {
         >
           Count is {count}
         </button>
+      </section>
+
+      <section style={{ padding: 20, background: '#f2f4f7' }}>
+        <QueryRunner />
       </section>
 
       <div className="ticks"></div>
