@@ -2,6 +2,7 @@ import { useState } from 'react'
 import './App.css'
 import QueryRunner from './components/QueryRunner'
 import WorldCupMatches from './components/WorldCupMatches'
+import SignupForm from './components/SignupForm'
 
 function App() {
   const [healthStatus, setHealthStatus] = useState(null)
@@ -50,6 +51,8 @@ function App() {
           </p>
         )}
       </section>
+
+      <SignupForm />
 
       <WorldCupMatches />
 

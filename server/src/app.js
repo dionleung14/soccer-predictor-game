@@ -15,6 +15,11 @@ dotenv.config({ path: path.resolve(__dirname, '../.env') })
 const app = express()
 const isProd = process.env.NODE_ENV === 'production'
 
+if (isProd) {
+  // Required for correct client IPs behind Heroku's reverse proxy (rate limiting).
+  app.set('trust proxy', 1)
+}
+
 const clientOrigins = (
   process.env.CLIENT_ORIGIN || 'http://localhost:3000,http://127.0.0.1:3000'
 )

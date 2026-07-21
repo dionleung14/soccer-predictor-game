@@ -1,7 +1,22 @@
 import { Router } from 'express'
+import rateLimit from 'express-rate-limit'
 import { getPool } from '../db/pool.js'
+import {
+  hashPassword,
+  validatePassword,
+} from '../auth/password.js'
 
 export const usersRouter = Router()
+
+const signupLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many signup attempts. Please try again later.' },
+})
+
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function parseRoles(value) {
   if (Array.isArray(value)) return value
@@ -29,14 +44,8 @@ function mapUser(row) {
   }
 }
 
-function normalizeRoles(roles) {
-  if (!Array.isArray(roles) || roles.length === 0) {
-    return ['player']
-  }
-  if (!roles.every((role) => typeof role === 'string' && role.trim())) {
-    return null
-  }
-  return [...new Set(roles.map((role) => role.trim()))]
+function normalizeEmail(email) {
+  return String(email).trim().toLowerCase().slice(0, 255)
 }
 
 usersRouter.get('/', async (_req, res, next) => {
@@ -54,35 +63,44 @@ usersRouter.get('/', async (_req, res, next) => {
   }
 })
 
-usersRouter.post('/', async (req, res, next) => {
+usersRouter.post('/signup', signupLimiter, async (req, res, next) => {
   try {
-    const { firstName, lastName, screenName, email, roles } = req.body ?? {}
+    const { firstName, lastName, screenName, email, password } = req.body ?? {}
 
-    if (!firstName || !lastName || !email) {
+    if (!firstName || !lastName || !email || password == null) {
       res.status(400).json({
-        error: 'firstName, lastName, and email are required',
+        error: 'firstName, lastName, email, and password are required',
       })
       return
     }
 
-    const normalizedRoles = normalizeRoles(roles)
-    if (!normalizedRoles) {
-      res.status(400).json({
-        error: 'roles must be an array of non-empty strings when provided',
-      })
+    const normalizedEmail = normalizeEmail(email)
+    if (!EMAIL_PATTERN.test(normalizedEmail)) {
+      res.status(400).json({ error: 'A valid email address is required' })
       return
     }
+
+    const passwordError = validatePassword(password, { email: normalizedEmail })
+    if (passwordError) {
+      res.status(400).json({ error: passwordError })
+      return
+    }
+
+    // Public signup always gets the player role — never trust client-supplied roles.
+    const roles = ['player']
+    const passwordHash = await hashPassword(password)
 
     const pool = getPool()
     const [result] = await pool.query(
-      `INSERT INTO users (first_name, last_name, screen_name, email, roles)
-       VALUES (:firstName, :lastName, :screenName, :email, CAST(:roles AS JSON))`,
+      `INSERT INTO users (first_name, last_name, screen_name, email, password_hash, roles)
+       VALUES (:firstName, :lastName, :screenName, :email, :passwordHash, CAST(:roles AS JSON))`,
       {
         firstName: String(firstName).slice(0, 100),
         lastName: String(lastName).slice(0, 100),
         screenName: screenName ? String(screenName).slice(0, 100) : null,
-        email: String(email).trim().toLowerCase().slice(0, 255),
-        roles: JSON.stringify(normalizedRoles),
+        email: normalizedEmail,
+        passwordHash,
+        roles: JSON.stringify(roles),
       },
     )
 
@@ -91,8 +109,8 @@ usersRouter.post('/', async (req, res, next) => {
       firstName: String(firstName).slice(0, 100),
       lastName: String(lastName).slice(0, 100),
       screenName: screenName ? String(screenName).slice(0, 100) : null,
-      email: String(email).trim().toLowerCase().slice(0, 255),
-      roles: normalizedRoles,
+      email: normalizedEmail,
+      roles,
     })
   } catch (err) {
     if (err?.code === 'ER_DUP_ENTRY') {
