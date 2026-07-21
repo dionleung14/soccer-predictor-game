@@ -1,10 +1,8 @@
 import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { getPool } from '../db/pool.js'
-import {
-  hashPassword,
-  validatePassword,
-} from '../auth/password.js'
+import { hashPassword, validatePassword } from '../auth/password.js'
+import { mapUser, normalizeEmail } from '../users/userMapper.js'
 
 export const usersRouter = Router()
 
@@ -17,36 +15,6 @@ const signupLimiter = rateLimit({
 })
 
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function parseRoles(value) {
-  if (Array.isArray(value)) return value
-  if (typeof value === 'string') {
-    try {
-      const parsed = JSON.parse(value)
-      return Array.isArray(parsed) ? parsed : []
-    } catch {
-      return []
-    }
-  }
-  return []
-}
-
-function mapUser(row) {
-  return {
-    id: row.id,
-    firstName: row.first_name,
-    lastName: row.last_name,
-    screenName: row.screen_name,
-    email: row.email,
-    roles: parseRoles(row.roles),
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }
-}
-
-function normalizeEmail(email) {
-  return String(email).trim().toLowerCase().slice(0, 255)
-}
 
 usersRouter.get('/', async (_req, res, next) => {
   try {
@@ -86,7 +54,6 @@ usersRouter.post('/signup', signupLimiter, async (req, res, next) => {
       return
     }
 
-    // Public signup always gets the player role — never trust client-supplied roles.
     const roles = ['player']
     const passwordHash = await hashPassword(password)
 

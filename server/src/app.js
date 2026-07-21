@@ -7,6 +7,8 @@ import { healthRouter } from './routes/health.js'
 import { footballRouter } from './routes/football.js'
 import { predictionsRouter } from './routes/predictions.js'
 import { usersRouter } from './routes/users.js'
+import { authRouter } from './routes/auth.js'
+import { createSessionMiddleware } from './middleware/session.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -30,11 +32,14 @@ const clientOrigins = (
 app.use(
   cors({
     origin: isProd ? true : clientOrigins,
+    credentials: true,
   }),
 )
 app.use(express.json())
+app.use(createSessionMiddleware())
 
 app.use('/api/health', healthRouter)
+app.use('/api/auth', authRouter)
 app.use('/api/football', footballRouter)
 app.use('/api/predictions', predictionsRouter)
 app.use('/api/users', usersRouter)

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { PASSWORD_MIN_LENGTH } from './signupConstants'
 
 const INITIAL_FORM = {
@@ -39,6 +40,7 @@ export default function SignupForm() {
     try {
       const res = await fetch('/api/users/signup', {
         method: 'POST',
+        credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           firstName: form.firstName.trim(),
@@ -54,7 +56,12 @@ export default function SignupForm() {
         throw new Error(data.error || `Signup failed (${res.status})`)
       }
 
-      setSuccess(`Account created for ${data.email}. You can sign in once login is available.`)
+      setSuccess(
+        <>
+          Account created for {data.email}.{' '}
+          <Link to="/login">Sign in</Link> to continue.
+        </>,
+      )
       setForm(INITIAL_FORM)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
