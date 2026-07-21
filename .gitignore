@@ -11,8 +11,12 @@ node_modules
 dist
 dist-ssr
 *.local
-sample_payloads
+client/sample_payloads
 
+# Secrets
+.env
+.env.*
+!.env.example
 
 # Editor directories and files
 .vscode/*
