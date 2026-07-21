@@ -35,7 +35,7 @@ footballRouter.use(async (req, res, next) => {
       ? await upstream.json()
       : await upstream.text();
 
-    console.log("body", body);
+    // console.log("body", body);
 
     res.status(upstream.status);
     if (typeof body === "string") {
