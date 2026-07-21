@@ -6,6 +6,7 @@ import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import WelcomePage from './pages/WelcomePage'
+import MyPicksPage from './pages/MyPicksPage'
 
 function App() {
   return (
@@ -20,6 +21,14 @@ function App() {
             element={
               <ProtectedRoute>
                 <WelcomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/picks"
+            element={
+              <ProtectedRoute>
+                <MyPicksPage />
               </ProtectedRoute>
             }
           />

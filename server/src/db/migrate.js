@@ -3,6 +3,7 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import dotenv from 'dotenv'
 import { getPool, closePool } from './pool.js'
+import { ensureDefaultLeague } from '../leagues/leagueService.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
@@ -61,6 +62,24 @@ async function ensurePasswordHashColumn(connection) {
   console.log('Migration applied: 003_users_password_hash')
 }
 
+async function ensureFantasyTablesSeeded(connection) {
+  const [rows] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM schema_migrations WHERE name = :name`,
+    { name: '004_fantasy_leagues_predictions' },
+  )
+  if (Number(rows[0].cnt) > 0) {
+    await ensureDefaultLeague(connection)
+    return
+  }
+
+  await ensureDefaultLeague(connection)
+  await connection.query(
+    `INSERT IGNORE INTO schema_migrations (name) VALUES (:name)`,
+    { name: '004_fantasy_leagues_predictions' },
+  )
+  console.log('Migration applied: 004_fantasy_leagues_predictions')
+}
+
 async function migrate() {
   const pool = getPool()
   const connection = await pool.getConnection()
@@ -68,6 +87,7 @@ async function migrate() {
     await connection.beginTransaction()
     await ensureBaseSchema(connection)
     await ensurePasswordHashColumn(connection)
+    await ensureFantasyTablesSeeded(connection)
     await connection.commit()
     console.log('Migrations up to date')
   } catch (err) {
