@@ -1,10 +1,11 @@
-import { Router } from 'express'
+import { Router } from "express";
 
-export const healthRouter = Router()
+export const healthRouter = Router();
 
-healthRouter.get('/', (_req, res) => {
+healthRouter.get("/", (_req, res) => {
+  console.log("health check");
   res.json({
     ok: true,
-    service: 'soccer-predictor-api',
-  })
-})
+    service: "soccer-predictor-api",
+  });
+});

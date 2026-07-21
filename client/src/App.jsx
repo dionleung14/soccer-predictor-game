@@ -7,6 +7,30 @@ import QueryRunner from './components/QueryRunner'
 
 function App() {
   const [count, setCount] = useState(0)
+  const [healthStatus, setHealthStatus] = useState(null)
+  const [healthLoading, setHealthLoading] = useState(false)
+
+  const checkServerHealth = async () => {
+    setHealthLoading(true)
+    setHealthStatus(null)
+    try {
+      const res = await fetch('/api/health')
+      const data = await res.json()
+      setHealthStatus({
+        ok: res.ok && data.ok,
+        message: res.ok
+          ? `Server OK · ${data.service}`
+          : `Unexpected response (${res.status})`,
+      })
+    } catch (err) {
+      setHealthStatus({
+        ok: false,
+        message: `Server unreachable · ${err instanceof Error ? err.message : String(err)}`,
+      })
+    } finally {
+      setHealthLoading(false)
+    }
+  }
 
   return (
     <>
@@ -29,6 +53,23 @@ function App() {
         >
           Count is {count}
         </button>
+        <button
+          type="button"
+          className="counter"
+          onClick={checkServerHealth}
+          disabled={healthLoading}
+        >
+          {healthLoading ? 'Checking server…' : 'Check API health'}
+        </button>
+        {healthStatus && (
+          <p
+            className={
+              healthStatus.ok ? 'health-status health-status--ok' : 'health-status health-status--error'
+            }
+          >
+            {healthStatus.message}
+          </p>
+        )}
       </section>
 
       <section style={{ padding: 20, background: '#f2f4f7' }}>
