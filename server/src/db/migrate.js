@@ -7,7 +7,7 @@ import { getPool, closePool } from './pool.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 dotenv.config({ path: path.resolve(__dirname, '../../.env') })
 
-const MIGRATION_NAME = '001_initial_schema'
+const MIGRATION_NAME = '002_users_table'
 
 async function migrate() {
   const pool = getPool()

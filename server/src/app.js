@@ -6,6 +6,7 @@ import dotenv from 'dotenv'
 import { healthRouter } from './routes/health.js'
 import { footballRouter } from './routes/football.js'
 import { predictionsRouter } from './routes/predictions.js'
+import { usersRouter } from './routes/users.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -31,6 +32,7 @@ app.use(express.json())
 app.use('/api/health', healthRouter)
 app.use('/api/football', footballRouter)
 app.use('/api/predictions', predictionsRouter)
+app.use('/api/users', usersRouter)
 
 // Heroku monorepo: serve the Vite build from the same dyno as the API.
 const clientDist = path.resolve(__dirname, '../../client/dist')
