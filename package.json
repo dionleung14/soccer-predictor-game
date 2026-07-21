@@ -2,6 +2,10 @@
   "name": "soccer-predictor-game",
   "private": true,
   "version": "0.0.0",
+  "engines": {
+    "node": ">=22 <25",
+    "npm": ">=10"
+  },
   "workspaces": [
     "client",
     "server"
@@ -12,6 +16,10 @@
     "dev:server": "npm run dev -w server",
     "build": "npm run build -w client",
     "start": "npm run start -w server",
+    "db:migrate": "npm run db:migrate -w server",
+    "db:up": "docker compose up -d mysql",
+    "db:down": "docker compose down",
+    "heroku-postbuild": "npm run build -w client",
     "lint": "npm run lint -w client"
   },
   "devDependencies": {

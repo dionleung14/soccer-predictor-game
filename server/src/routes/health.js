@@ -1,11 +1,25 @@
-import { Router } from "express";
+import { Router } from 'express'
+import { checkDatabase, getPool } from '../db/pool.js'
 
-export const healthRouter = Router();
+export const healthRouter = Router()
 
-healthRouter.get("/", (_req, res) => {
-  console.log("health check");
-  res.json({
+healthRouter.get('/', async (_req, res) => {
+  const payload = {
     ok: true,
-    service: "soccer-predictor-api",
-  });
-});
+    service: 'soccer-predictor-api',
+    database: 'disconnected',
+  }
+
+  try {
+    getPool()
+    const reachable = await checkDatabase()
+    payload.database = reachable ? 'connected' : 'error'
+    payload.ok = reachable
+    res.status(reachable ? 200 : 503).json(payload)
+  } catch (err) {
+    payload.ok = false
+    payload.database = 'error'
+    payload.detail = err instanceof Error ? err.message : String(err)
+    res.status(503).json(payload)
+  }
+})

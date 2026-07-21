@@ -1,0 +1,28 @@
+{
+  "name": "soccer-predictor-game",
+  "description": "Vite + Express monorepo with MySQL (JawsDB/ClearDB on Heroku)",
+  "repository": "https://github.com/dionleung14/soccer-predictor-game",
+  "addons": ["jawsdb:kitefin"],
+  "buildpacks": [
+    { "url": "heroku/nodejs" }
+  ],
+  "env": {
+    "NODE_ENV": {
+      "value": "production"
+    },
+    "FOOTBALL_DATA_API_TOKEN": {
+      "description": "API token for api.football-data.org",
+      "required": true
+    },
+    "MYSQL_SSL": {
+      "description": "Enable TLS for managed MySQL (recommended on Heroku)",
+      "value": "true"
+    }
+  },
+  "formation": {
+    "web": {
+      "quantity": 1,
+      "size": "eco"
+    }
+  }
+}

@@ -16,8 +16,8 @@ function App() {
       setHealthStatus({
         ok: res.ok && data.ok,
         message: res.ok
-          ? `Server OK · ${data.service}`
-          : `Unexpected response (${res.status})`,
+          ? `Server OK · ${data.service} · db ${data.database}`
+          : `Health check failed (${res.status})${data.detail ? ` · ${data.detail}` : ''}`,
       })
     } catch (err) {
       setHealthStatus({
