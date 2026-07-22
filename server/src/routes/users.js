@@ -2,6 +2,7 @@ import { Router } from 'express'
 import rateLimit from 'express-rate-limit'
 import { getPool } from '../db/pool.js'
 import { hashPassword, validatePassword } from '../auth/password.js'
+import { EmailSendError, sendSignupEmail } from '../email/mailer.js'
 import { mapUser, normalizeEmail } from '../users/userMapper.js'
 
 export const usersRouter = Router()
@@ -54,17 +55,46 @@ usersRouter.post('/signup', signupLimiter, async (req, res, next) => {
       return
     }
 
+    const trimmedFirstName = String(firstName).slice(0, 100)
+    const trimmedLastName = String(lastName).slice(0, 100)
+    const trimmedScreenName = screenName ? String(screenName).slice(0, 100) : null
     const roles = ['player']
     const passwordHash = await hashPassword(password)
 
     const pool = getPool()
+
+    // Fail fast on duplicates so we never send a welcome email for an existing account.
+    const [existing] = await pool.query(
+      `SELECT id
+       FROM users
+       WHERE email = :email
+          OR (:screenName IS NOT NULL AND screen_name = :screenName)
+       LIMIT 1`,
+      {
+        email: normalizedEmail,
+        screenName: trimmedScreenName,
+      },
+    )
+    if (existing.length > 0) {
+      res.status(409).json({ error: 'A user with that email or screen name already exists' })
+      return
+    }
+
+    // In production/Heroku, account creation completes only after the email is accepted.
+    // Local development skips SMTP so signup works without mail credentials.
+    const emailResult = await sendSignupEmail({
+      to: normalizedEmail,
+      firstName: trimmedFirstName,
+    })
+    const emailSent = !emailResult?.skipped
+
     const [result] = await pool.query(
       `INSERT INTO users (first_name, last_name, screen_name, email, password_hash, roles)
        VALUES (:firstName, :lastName, :screenName, :email, :passwordHash, CAST(:roles AS JSON))`,
       {
-        firstName: String(firstName).slice(0, 100),
-        lastName: String(lastName).slice(0, 100),
-        screenName: screenName ? String(screenName).slice(0, 100) : null,
+        firstName: trimmedFirstName,
+        lastName: trimmedLastName,
+        screenName: trimmedScreenName,
         email: normalizedEmail,
         passwordHash,
         roles: JSON.stringify(roles),
@@ -73,13 +103,22 @@ usersRouter.post('/signup', signupLimiter, async (req, res, next) => {
 
     res.status(201).json({
       id: result.insertId,
-      firstName: String(firstName).slice(0, 100),
-      lastName: String(lastName).slice(0, 100),
-      screenName: screenName ? String(screenName).slice(0, 100) : null,
+      firstName: trimmedFirstName,
+      lastName: trimmedLastName,
+      screenName: trimmedScreenName,
       email: normalizedEmail,
       roles,
+      emailSent,
     })
   } catch (err) {
+    if (err instanceof EmailSendError) {
+      console.error(err)
+      res.status(503).json({
+        error: 'Could not send signup email. Account was not created. Please try again later.',
+        detail: err.message,
+      })
+      return
+    }
     if (err?.code === 'ER_DUP_ENTRY') {
       res.status(409).json({ error: 'A user with that email or screen name already exists' })
       return

@@ -79,13 +79,23 @@ export default function SignupForm({ open, onClose }) {
       }
 
       setSuccess(
-        <>
-          Account created for {data.email}.{' '}
-          <Link to="/login" onClick={onClose}>
-            Sign in
-          </Link>{' '}
-          to continue.
-        </>,
+        data.emailSent ? (
+          <>
+            Welcome email sent to {data.email}. Your account is ready —{' '}
+            <Link to="/login" onClick={onClose}>
+              sign in
+            </Link>{' '}
+            to continue.
+          </>
+        ) : (
+          <>
+            Account created for {data.email}.{' '}
+            <Link to="/login" onClick={onClose}>
+              Sign in
+            </Link>{' '}
+            to continue.
+          </>
+        ),
       )
       setForm(INITIAL_FORM)
     } catch (err) {
