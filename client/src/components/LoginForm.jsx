@@ -42,7 +42,7 @@ export default function LoginForm() {
         <h2>Sign in</h2>
         <p>
           Use the email and password from your account.{' '}
-          <Link to="/">Need an account?</Link>
+          <Link to="/?signup=1">Need an account?</Link>
         </p>
 
         <form className="signup__form" onSubmit={handleSubmit} noValidate>

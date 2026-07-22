@@ -67,6 +67,69 @@
   }
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 16px;
+  overflow: auto;
+  background: rgba(8, 6, 13, 0.45);
+  box-sizing: border-box;
+}
+
+.modal {
+  width: 100%;
+  max-width: 520px;
+  margin: auto 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  text-align: left;
+}
+
+.modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px 0;
+  box-sizing: border-box;
+
+  h2 {
+    margin: 0;
+    color: var(--text-h);
+    font-size: 1.35rem;
+  }
+}
+
+.modal__close {
+  appearance: none;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 6px;
+
+  &:hover {
+    color: var(--text-h);
+    background: var(--accent-bg);
+  }
+}
+
+.modal__body {
+  max-width: none;
+  padding: 12px 20px 24px;
+  box-sizing: border-box;
+}
+
 .signup__form {
   display: flex;
   flex-direction: column;
@@ -192,6 +255,73 @@
 
 .app-header__logout {
   margin-bottom: 0;
+}
+
+.app-header__account {
+  position: relative;
+}
+
+.app-header__menu-toggle {
+  appearance: none;
+  border: 1px solid var(--border);
+  background: var(--bg);
+  color: var(--text-h);
+  font: inherit;
+  font-size: 14px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  &:hover {
+    border-color: var(--accent-border);
+    background: var(--accent-bg);
+  }
+}
+
+.app-header__menu-caret {
+  font-size: 12px;
+  color: var(--text);
+}
+
+.app-header__menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  min-width: 160px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  z-index: 50;
+  text-align: left;
+
+  a,
+  button {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: var(--text-h);
+    font: inherit;
+    font-size: 14px;
+    text-decoration: none;
+    text-align: left;
+    padding: 8px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  a:hover,
+  button:hover {
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
 }
 
 .home-competitions {
