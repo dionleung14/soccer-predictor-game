@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom'
+import { Link, NavLink } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
+import { COMPETITIONS } from '../competitions'
 
 export default function AppHeader() {
   const { user, isAuthenticated, logout, loading } = useAuth()
@@ -14,9 +15,24 @@ export default function AppHeader() {
 
   return (
     <header className="app-header">
-      <Link to="/" className="app-header__brand">
-        Soccer Predictor
-      </Link>
+      <div className="app-header__left">
+        <Link to="/" className="app-header__brand">
+          Soccer Predictor
+        </Link>
+        <nav className="app-header__competitions" aria-label="Competitions">
+          {COMPETITIONS.map((competition) => (
+            <NavLink
+              key={competition.code}
+              to={competition.path}
+              className={({ isActive }) =>
+                isActive ? 'app-header__comp-link is-active' : 'app-header__comp-link'
+              }
+            >
+              {competition.shortName}
+            </NavLink>
+          ))}
+        </nav>
+      </div>
       <nav className="app-header__nav">
         {!loading && isAuthenticated ? (
           <>

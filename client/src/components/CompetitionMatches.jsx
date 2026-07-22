@@ -2,8 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
-const WC_MATCHES_URL = '/api/football/v4/competitions/WC/matches'
-
 const LOCKED_STATUSES = new Set([
   'IN_PLAY',
   'PAUSED',
@@ -48,14 +46,17 @@ function isMatchLocked(match) {
   return new Date(match.utcDate).getTime() <= Date.now()
 }
 
-function MatchCard({ match, existingPick, scoringRules, onSavePick, isAuthenticated }) {
+function MatchCard({
+  match,
+  competitionCode,
+  existingPick,
+  scoringRules,
+  onSavePick,
+  isAuthenticated,
+}) {
   const locked = isMatchLocked(match)
-  const [homeScore, setHomeScore] = useState(
-    existingPick?.predictedHomeScore ?? '',
-  )
-  const [awayScore, setAwayScore] = useState(
-    existingPick?.predictedAwayScore ?? '',
-  )
+  const [homeScore, setHomeScore] = useState(existingPick?.predictedHomeScore ?? '')
+  const [awayScore, setAwayScore] = useState(existingPick?.predictedAwayScore ?? '')
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState(null)
   const [error, setError] = useState(null)
@@ -89,7 +90,7 @@ function MatchCard({ match, existingPick, scoringRules, onSavePick, isAuthentica
         homeTeamName: match.homeTeam?.name || 'Home',
         awayTeamName: match.awayTeam?.name || 'Away',
         matchKickoffAt: match.utcDate,
-        competitionCode: match.competition?.code || 'WC',
+        competitionCode: match.competition?.code || competitionCode,
         matchStatus: match.status,
       })
       setMessage('Pick saved')
@@ -181,14 +182,14 @@ function MatchCard({ match, existingPick, scoringRules, onSavePick, isAuthentica
   )
 }
 
-export default function WorldCupMatches() {
+export default function CompetitionMatches({ competition }) {
+  const { code, name, description } = competition
   const { isAuthenticated } = useAuth()
   const [matches, setMatches] = useState([])
   const [picksByMatchId, setPicksByMatchId] = useState({})
   const [scoringRules, setScoringRules] = useState(null)
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
-  const [loaded, setLoaded] = useState(false)
 
   const loadPicks = async () => {
     if (!isAuthenticated) {
@@ -207,20 +208,21 @@ export default function WorldCupMatches() {
   const loadMatches = async () => {
     setLoading(true)
     setError(null)
+    setMatches([])
     try {
-      const res = await fetch(WC_MATCHES_URL, { credentials: 'include' })
+      const res = await fetch(`/api/football/v4/competitions/${code}/matches`, {
+        credentials: 'include',
+      })
       const data = await res.json()
       if (!res.ok) {
         throw new Error(data.error || data.message || `Request failed (${res.status})`)
       }
       setMatches(Array.isArray(data.matches) ? data.matches : [])
-      setLoaded(true)
       if (isAuthenticated) {
         await loadPicks()
       }
     } catch (err) {
       setMatches([])
-      setLoaded(false)
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setLoading(false)
@@ -228,11 +230,19 @@ export default function WorldCupMatches() {
   }
 
   useEffect(() => {
-    if (isAuthenticated && loaded) {
-      loadPicks().catch((err) => setError(err.message))
-    }
+    loadMatches()
+    // Reload whenever the competition changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, loaded])
+  }, [code])
+
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setPicksByMatchId({})
+      return
+    }
+    loadPicks().catch((err) => setError(err.message))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthenticated, code])
 
   const savePick = async (payload) => {
     const res = await fetch('/api/predictions', {
@@ -255,32 +265,29 @@ export default function WorldCupMatches() {
   return (
     <section className="wc-matches">
       <div className="wc-matches__intro">
-        <h2>Fantasy score picks</h2>
-        <p>
-          Guess final scores like a fantasy pick game. Exact score and correct
-          outcome points are set by the league — commissioners will be able to
-          tune these later.
+        <h1>{name}</h1>
+        <p>{description}</p>
+        <p className="match-card__pick-hint">
+          Enter a final score for each fixture. Picks lock at kickoff.
         </p>
-        <button
-          type="button"
-          className="counter"
-          onClick={loadMatches}
-          disabled={loading}
-        >
-          {loading ? 'Loading matches…' : 'Load World Cup matches'}
-        </button>
         {isAuthenticated && (
           <p>
-            <Link to="/picks">View my picks</Link>
+            <Link to="/picks">View all my picks</Link>
           </p>
         )}
+        {loading && <p>Loading {name} matches…</p>}
         {error && <p className="health-status health-status--error">{error}</p>}
-        {loaded && !error && (
+        {!loading && !error && (
           <p className="health-status health-status--ok">
             {matches.length === 0
-              ? 'No matches returned for the current World Cup season.'
+              ? `No matches returned for ${name}.`
               : `${matches.length} match${matches.length === 1 ? '' : 'es'} loaded`}
           </p>
+        )}
+        {!loading && (
+          <button type="button" className="counter" onClick={loadMatches}>
+            Refresh matches
+          </button>
         )}
       </div>
 
@@ -290,6 +297,7 @@ export default function WorldCupMatches() {
             <MatchCard
               key={match.id}
               match={match}
+              competitionCode={code}
               existingPick={picksByMatchId[match.id]}
               scoringRules={scoringRules}
               onSavePick={savePick}

@@ -1,7 +1,8 @@
+import { Link } from 'react-router-dom'
 import { useState } from 'react'
 import QueryRunner from '../components/QueryRunner'
-import WorldCupMatches from '../components/WorldCupMatches'
 import SignupForm from '../components/SignupForm'
+import { COMPETITIONS } from '../competitions'
 
 export default function HomePage() {
   const [healthStatus, setHealthStatus] = useState(null)
@@ -53,9 +54,20 @@ export default function HomePage() {
         )}
       </section>
 
-      <SignupForm />
+      <section className="home-competitions">
+        <h2>Pick a competition</h2>
+        <p>Open a tournament to view fixtures and predict final scores.</p>
+        <div className="home-competitions__grid">
+          {COMPETITIONS.map((competition) => (
+            <Link key={competition.code} to={competition.path} className="home-competitions__card">
+              <strong>{competition.name}</strong>
+              <span>{competition.description}</span>
+            </Link>
+          ))}
+        </div>
+      </section>
 
-      <WorldCupMatches />
+      <SignupForm />
 
       <section style={{ padding: 20, background: '#f2f4f7' }}>
         <QueryRunner />
