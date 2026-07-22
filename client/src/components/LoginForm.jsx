@@ -28,7 +28,7 @@ export default function LoginForm() {
         password: form.password,
       })
       setForm(INITIAL_FORM)
-      navigate('/welcome', { replace: true })
+      navigate('/profile', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -42,7 +42,7 @@ export default function LoginForm() {
         <h2>Sign in</h2>
         <p>
           Use the email and password from your account.{' '}
-          <Link to="/">Need an account?</Link>
+          <Link to="/?signup=1">Need an account?</Link>
         </p>
 
         <form className="signup__form" onSubmit={handleSubmit} noValidate>

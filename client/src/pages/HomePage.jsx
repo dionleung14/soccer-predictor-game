@@ -1,64 +1,21 @@
-import { Link } from 'react-router-dom'
-import { useState } from 'react'
-import SignupForm from '../components/SignupForm'
-import { COMPETITIONS } from '../competitions'
+import { Link } from "react-router-dom";
+import CoverageCarousel from "../components/CoverageCarousel";
+import { COMPETITIONS } from "../competitions";
 
 export default function HomePage() {
-  const [healthStatus, setHealthStatus] = useState(null)
-  const [healthLoading, setHealthLoading] = useState(false)
-
-  const checkServerHealth = async () => {
-    setHealthLoading(true)
-    setHealthStatus(null)
-    try {
-      const res = await fetch('/api/health', { credentials: 'include' })
-      const data = await res.json()
-      setHealthStatus({
-        ok: res.ok && data.ok,
-        message: res.ok
-          ? `Server OK · ${data.service} · db ${data.database}`
-          : `Health check failed (${res.status})${data.detail ? ` · ${data.detail}` : ''}`,
-      })
-    } catch (err) {
-      setHealthStatus({
-        ok: false,
-        message: `Server unreachable · ${err instanceof Error ? err.message : String(err)}`,
-      })
-    } finally {
-      setHealthLoading(false)
-    }
-  }
-
   return (
     <>
-      <section id="center">
-        <button
-          type="button"
-          className="counter"
-          onClick={checkServerHealth}
-          disabled={healthLoading}
-        >
-          {healthLoading ? 'Checking server…' : 'Check API health'}
-        </button>
-        {healthStatus && (
-          <p
-            className={
-              healthStatus.ok
-                ? 'health-status health-status--ok'
-                : 'health-status health-status--error'
-            }
-          >
-            {healthStatus.message}
-          </p>
-        )}
-      </section>
+      <CoverageCarousel />
 
       <section className="home-competitions">
         <h2>Pick a competition</h2>
         <p>Open a tournament to view fixtures and predict final scores.</p>
         <div className="home-competitions__grid">
-          {COMPETITIONS.map((competition) => (
-            <Link key={competition.code} to={competition.path} className="home-competitions__card">
+          {COMPETITIONS.map(competition => (
+            <Link
+              key={competition.code}
+              to={competition.path}
+              className="home-competitions__card">
               <strong>{competition.name}</strong>
               <span>{competition.description}</span>
             </Link>
@@ -66,9 +23,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <SignupForm />
-
       <section id="spacer"></section>
     </>
-  )
+  );
 }

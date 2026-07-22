@@ -5,7 +5,7 @@ import AppHeader from './components/AppHeader'
 import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
-import WelcomePage from './pages/WelcomePage'
+import ProfilePage from './pages/ProfilePage'
 import MyPicksPage from './pages/MyPicksPage'
 import CompetitionPage from './pages/CompetitionPage'
 
@@ -19,10 +19,10 @@ function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/competitions/:competitionSlug" element={<CompetitionPage />} />
           <Route
-            path="/welcome"
+            path="/profile"
             element={
               <ProtectedRoute>
-                <WelcomePage />
+                <ProfilePage />
               </ProtectedRoute>
             }
           />
@@ -34,6 +34,7 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/welcome" element={<Navigate to="/profile" replace />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </AuthProvider>
