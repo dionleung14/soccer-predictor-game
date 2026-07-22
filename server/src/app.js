@@ -8,6 +8,8 @@ import { footballRouter } from './routes/football.js'
 import { predictionsRouter } from './routes/predictions.js'
 import { usersRouter } from './routes/users.js'
 import { authRouter } from './routes/auth.js'
+import { leaguesRouter } from './routes/leagues.js'
+import { competitionsRouter } from './routes/competitions.js'
 import { createSessionMiddleware } from './middleware/session.js'
 import { errorHandler } from './middleware/errorHandler.js'
 
@@ -41,6 +43,8 @@ app.use(createSessionMiddleware())
 app.use('/api/health', healthRouter)
 app.use('/api/auth', authRouter)
 app.use('/api/football', footballRouter)
+app.use('/api/competitions', competitionsRouter)
+app.use('/api/leagues', leaguesRouter)
 app.use('/api/predictions', predictionsRouter)
 app.use('/api/users', usersRouter)
 

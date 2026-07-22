@@ -6,6 +6,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import HomePage from './pages/HomePage'
 import LoginPage from './pages/LoginPage'
 import WelcomePage from './pages/WelcomePage'
+import MyPicksPage from './pages/MyPicksPage'
+import CompetitionPage from './pages/CompetitionPage'
 
 function App() {
   return (
@@ -15,11 +17,20 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/competitions/:competitionSlug" element={<CompetitionPage />} />
           <Route
             path="/welcome"
             element={
               <ProtectedRoute>
                 <WelcomePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/picks"
+            element={
+              <ProtectedRoute>
+                <MyPicksPage />
               </ProtectedRoute>
             }
           />
