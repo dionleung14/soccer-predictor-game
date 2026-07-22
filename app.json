@@ -14,9 +14,17 @@
       "description": "API token for api.football-data.org",
       "required": true
     },
+    "SESSION_SECRET": {
+      "description": "Secret used to sign session cookies",
+      "generator": "secret"
+    },
     "MYSQL_SSL": {
       "description": "Enable TLS for managed MySQL (recommended on Heroku)",
       "value": "true"
+    },
+    "FIXTURES_SYNC_TOKEN": {
+      "description": "Optional token required for POST /api/competitions/:code/sync",
+      "required": false
     }
   },
   "formation": {

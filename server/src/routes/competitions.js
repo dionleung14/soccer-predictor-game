@@ -58,6 +58,13 @@ competitionsRouter.get('/:code/sync-status', async (req, res, next) => {
 competitionsRouter.post('/:code/sync', async (req, res, next) => {
   try {
     const expected = process.env.FIXTURES_SYNC_TOKEN
+    const isProd = process.env.NODE_ENV === 'production'
+    if (isProd && !expected) {
+      res.status(403).json({
+        error: 'Fixture sync is disabled in production until FIXTURES_SYNC_TOKEN is set',
+      })
+      return
+    }
     if (expected) {
       const provided = req.get('x-fixtures-sync-token') || req.body?.token
       if (provided !== expected) {
