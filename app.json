@@ -25,6 +25,30 @@
     "FIXTURES_SYNC_TOKEN": {
       "description": "Optional token required for POST /api/competitions/:code/sync",
       "required": false
+    },
+    "SMTP_HOST": {
+      "description": "SMTP host used to send signup emails (account creation requires a successful send)",
+      "required": true
+    },
+    "SMTP_PORT": {
+      "description": "SMTP port (587 STARTTLS or 465 SSL)",
+      "value": "587"
+    },
+    "SMTP_SECURE": {
+      "description": "Set true for SMTPS (port 465)",
+      "value": "false"
+    },
+    "SMTP_USER": {
+      "description": "SMTP username",
+      "required": true
+    },
+    "SMTP_PASS": {
+      "description": "SMTP password or app password",
+      "required": true
+    },
+    "EMAIL_FROM": {
+      "description": "From header for outbound mail, e.g. Soccer Predictor <noreply@example.com>",
+      "required": false
     }
   },
   "formation": {
