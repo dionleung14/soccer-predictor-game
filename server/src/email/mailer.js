@@ -110,7 +110,8 @@ export async function sendSignupEmail({ to, firstName }) {
     if (info.rejected?.length) {
       throw new EmailSendError(`Email provider rejected address: ${to}`);
     }
-
+    console.info(`[email] Signup email sent to ${to}`);
+    console.log(text);
     return info;
   } catch (err) {
     if (err instanceof EmailSendError) throw err;
