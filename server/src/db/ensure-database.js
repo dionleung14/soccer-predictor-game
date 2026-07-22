@@ -11,7 +11,28 @@ function stripQuotes(value) {
   return String(value).trim().replace(/^['"]|['"]$/g, '')
 }
 
+function hasManagedDatabaseUrl() {
+  return Boolean(
+    process.env.JAWSDB_URL ||
+      process.env.CLEARDB_DATABASE_URL ||
+      process.env.DATABASE_URL ||
+      process.env.MYSQL_URL,
+  )
+}
+
+function shouldSkipLocalEnsure() {
+  // Heroku sets DYNO on web/release dynos. Managed add-ons already provide a DB.
+  return Boolean(process.env.DYNO) || hasManagedDatabaseUrl()
+}
+
 async function ensureDatabase() {
+  if (shouldSkipLocalEnsure()) {
+    console.log(
+      'Skipping local CREATE DATABASE (Heroku dyno or managed database URL detected)',
+    )
+    return
+  }
+
   const database = stripQuotes(process.env.DB_NAME || process.env.MYSQL_DATABASE)
   const user = stripQuotes(
     process.env.DB_USERNAME_ROOT ||
@@ -28,7 +49,9 @@ async function ensureDatabase() {
   const port = Number(stripQuotes(process.env.DB_PORT || process.env.MYSQL_PORT || '3306'))
 
   if (!database || !user) {
-    throw new Error('DB_NAME and DB_USERNAME_ROOT are required to initialize MySQL')
+    throw new Error(
+      'DB_NAME and DB_USERNAME_ROOT are required for local MySQL init (or set JAWSDB_URL / DATABASE_URL on Heroku)',
+    )
   }
 
   const connection = await mysql.createConnection({
