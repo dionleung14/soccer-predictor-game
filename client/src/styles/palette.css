@@ -1,0 +1,17 @@
+/**
+ * Brand palette — reuse via var(--color-*) or semantic tokens below.
+ * Source hex: 393E41, D3D0CB, 5A9367, 8783D1, A5402D
+ */
+:root {
+  --color-charcoal: #393e41;
+  --color-stone: #d3d0cb;
+  --color-green: #5a9367;
+  --color-periwinkle: #8783d1;
+  --color-terracotta: #a5402d;
+
+  --color-charcoal-rgb: 57, 62, 65;
+  --color-stone-rgb: 211, 208, 203;
+  --color-green-rgb: 90, 147, 103;
+  --color-periwinkle-rgb: 135, 131, 209;
+  --color-terracotta-rgb: 165, 64, 45;
+}

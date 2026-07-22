@@ -26,11 +26,11 @@
   font-size: 14px;
 
   &--ok {
-    color: #1a7f37;
+    color: var(--color-green);
   }
 
   &--error {
-    color: #cf222e;
+    color: var(--color-terracotta);
   }
 }
 
