@@ -28,7 +28,7 @@ export default function LoginForm() {
         password: form.password,
       })
       setForm(INITIAL_FORM)
-      navigate('/welcome', { replace: true })
+      navigate('/profile', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

@@ -82,7 +82,7 @@ export default function AppHeader() {
                 {user.screenName || user.firstName || user.email}
               </span>
               <Link to="/picks">My picks</Link>
-              <Link to="/welcome">Welcome</Link>
+              <Link to="/profile">Profile</Link>
               <button type="button" className="counter app-header__logout" onClick={handleLogout}>
                 Log out
               </button>
