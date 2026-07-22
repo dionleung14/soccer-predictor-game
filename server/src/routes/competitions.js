@@ -2,11 +2,13 @@ import { Router } from 'express'
 import {
   getCompetitionMatches,
   getSyncStatus,
-  isCachedCompetition,
   syncCompetitionFixtures,
   shouldRefreshFromApi,
 } from '../fixtures/fixturesService.js'
-import { CACHED_COMPETITION_CODES } from '../fixtures/competitionCodes.js'
+import {
+  CACHED_COMPETITION_CODES,
+  isCachedCompetition,
+} from '../fixtures/competitionCodes.js'
 
 export const competitionsRouter = Router()
 

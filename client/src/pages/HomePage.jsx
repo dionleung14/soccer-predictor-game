@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import { useState } from 'react'
-import QueryRunner from '../components/QueryRunner'
 import SignupForm from '../components/SignupForm'
 import { COMPETITIONS } from '../competitions'
 
@@ -68,10 +67,6 @@ export default function HomePage() {
       </section>
 
       <SignupForm />
-
-      <section style={{ padding: 20, background: '#f2f4f7' }}>
-        <QueryRunner />
-      </section>
 
       <section id="spacer"></section>
     </>
