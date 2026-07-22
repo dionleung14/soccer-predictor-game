@@ -1,15 +1,21 @@
-import { Link } from 'react-router-dom'
-import { COMPETITIONS } from '../competitions'
+import { Link } from "react-router-dom";
+import CoverageCarousel from "../components/CoverageCarousel";
+import { COMPETITIONS } from "../competitions";
 
 export default function HomePage() {
   return (
     <>
+      <CoverageCarousel />
+
       <section className="home-competitions">
         <h2>Pick a competition</h2>
         <p>Open a tournament to view fixtures and predict final scores.</p>
         <div className="home-competitions__grid">
-          {COMPETITIONS.map((competition) => (
-            <Link key={competition.code} to={competition.path} className="home-competitions__card">
+          {COMPETITIONS.map(competition => (
+            <Link
+              key={competition.code}
+              to={competition.path}
+              className="home-competitions__card">
               <strong>{competition.name}</strong>
               <span>{competition.description}</span>
             </Link>
@@ -19,5 +25,5 @@ export default function HomePage() {
 
       <section id="spacer"></section>
     </>
-  )
+  );
 }
