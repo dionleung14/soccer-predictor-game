@@ -210,7 +210,7 @@ export default function CompetitionMatches({ competition }) {
     setError(null)
     setMatches([])
     try {
-      const res = await fetch(`/api/football/v4/competitions/${code}/matches`, {
+      const res = await fetch(`/api/competitions/${code}/matches`, {
         credentials: 'include',
       })
       const data = await res.json()
@@ -280,8 +280,8 @@ export default function CompetitionMatches({ competition }) {
         {!loading && !error && (
           <p className="health-status health-status--ok">
             {matches.length === 0
-              ? `No matches returned for ${name}.`
-              : `${matches.length} match${matches.length === 1 ? '' : 'es'} loaded`}
+              ? `No matches stored yet for ${name}.`
+              : `${matches.length} match${matches.length === 1 ? '' : 'es'} loaded from database`}
           </p>
         )}
         {!loading && (

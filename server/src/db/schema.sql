@@ -96,3 +96,39 @@ CREATE TABLE IF NOT EXISTS match_predictions (
     FOREIGN KEY (user_id) REFERENCES users (id)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Cached competition schedules (WC / PL / EC). Synced from football-data.org.
+CREATE TABLE IF NOT EXISTS competition_sync_state (
+  competition_code VARCHAR(16) NOT NULL,
+  last_synced_at TIMESTAMP NULL,
+  last_sync_status ENUM('never', 'ok', 'error') NOT NULL DEFAULT 'never',
+  last_sync_error VARCHAR(500) NULL,
+  match_count INT UNSIGNED NOT NULL DEFAULT 0,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (competition_code)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS fixtures (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  external_match_id INT NOT NULL,
+  competition_code VARCHAR(16) NOT NULL,
+  season_start_year SMALLINT UNSIGNED NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'SCHEDULED',
+  stage VARCHAR(64) NULL,
+  matchday SMALLINT UNSIGNED NULL,
+  kickoff_at DATETIME NULL,
+  home_team_id INT NULL,
+  home_team_name VARCHAR(120) NOT NULL,
+  home_team_crest VARCHAR(512) NULL,
+  away_team_id INT NULL,
+  away_team_name VARCHAR(120) NOT NULL,
+  away_team_crest VARCHAR(512) NULL,
+  home_score TINYINT UNSIGNED NULL,
+  away_score TINYINT UNSIGNED NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_fixtures_external_match_id (external_match_id),
+  KEY idx_fixtures_competition_kickoff (competition_code, kickoff_at),
+  KEY idx_fixtures_competition_status (competition_code, status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

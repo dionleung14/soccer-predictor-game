@@ -17,6 +17,7 @@
     "build": "npm run build -w client",
     "start": "npm run start -w server",
     "db:migrate": "npm run db:migrate -w server",
+    "fixtures:sync": "npm run fixtures:sync -w server",
     "db:up": "docker compose up -d mysql",
     "db:down": "docker compose down",
     "heroku-postbuild": "npm run build -w client",
