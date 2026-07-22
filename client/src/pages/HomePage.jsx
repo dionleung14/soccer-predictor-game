@@ -1,37 +1,37 @@
 import { Link } from 'react-router-dom'
-import { useState } from 'react'
+// import { useState } from 'react'
 import SignupForm from '../components/SignupForm'
 import { COMPETITIONS } from '../competitions'
 
 export default function HomePage() {
-  const [healthStatus, setHealthStatus] = useState(null)
-  const [healthLoading, setHealthLoading] = useState(false)
+  // const [healthStatus, setHealthStatus] = useState(null)
+  // const [healthLoading, setHealthLoading] = useState(false)
 
-  const checkServerHealth = async () => {
-    setHealthLoading(true)
-    setHealthStatus(null)
-    try {
-      const res = await fetch('/api/health', { credentials: 'include' })
-      const data = await res.json()
-      setHealthStatus({
-        ok: res.ok && data.ok,
-        message: res.ok
-          ? `Server OK · ${data.service} · db ${data.database}`
-          : `Health check failed (${res.status})${data.detail ? ` · ${data.detail}` : ''}`,
-      })
-    } catch (err) {
-      setHealthStatus({
-        ok: false,
-        message: `Server unreachable · ${err instanceof Error ? err.message : String(err)}`,
-      })
-    } finally {
-      setHealthLoading(false)
-    }
-  }
+  // const checkServerHealth = async () => {
+  //   setHealthLoading(true)
+  //   setHealthStatus(null)
+  //   try {
+  //     const res = await fetch('/api/health', { credentials: 'include' })
+  //     const data = await res.json()
+  //     setHealthStatus({
+  //       ok: res.ok && data.ok,
+  //       message: res.ok
+  //         ? `Server OK · ${data.service} · db ${data.database}`
+  //         : `Health check failed (${res.status})${data.detail ? ` · ${data.detail}` : ''}`,
+  //     })
+  //   } catch (err) {
+  //     setHealthStatus({
+  //       ok: false,
+  //       message: `Server unreachable · ${err instanceof Error ? err.message : String(err)}`,
+  //     })
+  //   } finally {
+  //     setHealthLoading(false)
+  //   }
+  // }
 
   return (
     <>
-      <section id="center">
+      {/* <section id="center">
         <button
           type="button"
           className="counter"
@@ -51,7 +51,7 @@ export default function HomePage() {
             {healthStatus.message}
           </p>
         )}
-      </section>
+      </section> */}
 
       <section className="home-competitions">
         <h2>Pick a competition</h2>
