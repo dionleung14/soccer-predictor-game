@@ -1,66 +1,66 @@
-import nodemailer from 'nodemailer'
+import nodemailer from "nodemailer";
 
 export class EmailSendError extends Error {
   constructor(message, { cause } = {}) {
-    super(message)
-    this.name = 'EmailSendError'
-    this.cause = cause
+    super(message);
+    this.name = "EmailSendError";
+    this.cause = cause;
   }
 }
 
-let transporterPromise
+let transporterPromise;
+
+// Flip to true to exercise SMTP locally (still required automatically in production / on Heroku).
+const FORCE_SIGNUP_EMAIL_LOCALLY = true;
 
 /**
- * Signup email is required in production / on Heroku so a failed send blocks account creation.
- * Local development skips SMTP so signup works without mail credentials.
+ * Signup email gates account creation when required.
+ * Local development skips SMTP unless FORCE_SIGNUP_EMAIL_LOCALLY is true.
  */
 export function isSignupEmailRequired() {
-  if (process.env.REQUIRE_SIGNUP_EMAIL === 'true' || process.env.REQUIRE_SIGNUP_EMAIL === '1') {
-    return true
-  }
-  if (process.env.REQUIRE_SIGNUP_EMAIL === 'false' || process.env.REQUIRE_SIGNUP_EMAIL === '0') {
-    return false
-  }
-  // Heroku sets DYNO on web/release dynos; NODE_ENV=production covers other deploys.
-  return process.env.NODE_ENV === 'production' || Boolean(process.env.DYNO)
+  return (
+    FORCE_SIGNUP_EMAIL_LOCALLY ||
+    process.env.NODE_ENV === "production" ||
+    Boolean(process.env.DYNO)
+  );
 }
 
 function requireEnv(name) {
-  const value = process.env[name]?.trim()
+  const value = process.env[name]?.trim();
   if (!value) {
-    throw new EmailSendError(`Missing required email config: ${name}`)
+    throw new EmailSendError(`Missing required email config: ${name}`);
   }
-  return value
+  return value;
 }
 
 function createTransporter() {
-  const host = requireEnv('SMTP_HOST')
-  const port = Number(process.env.SMTP_PORT || 587)
+  const host = requireEnv("SMTP_HOST");
+  const port = Number(process.env.SMTP_PORT || 587);
   const secure =
-    process.env.SMTP_SECURE === 'true' ||
-    process.env.SMTP_SECURE === '1' ||
-    port === 465
+    process.env.SMTP_SECURE === "true" ||
+    process.env.SMTP_SECURE === "1" ||
+    port === 465;
 
-  const user = process.env.SMTP_USER?.trim()
-  const pass = process.env.SMTP_PASS?.trim()
+  const user = process.env.SMTP_USER?.trim();
+  const pass = process.env.SMTP_PASS?.trim();
 
   return nodemailer.createTransport({
     host,
     port,
     secure,
-    auth: user ? { user, pass: pass || '' } : undefined,
-  })
+    auth: user ? { user, pass: pass || "" } : undefined,
+  });
 }
 
 async function getTransporter() {
   if (!transporterPromise) {
-    transporterPromise = Promise.resolve(createTransporter())
+    transporterPromise = Promise.resolve(createTransporter());
   }
-  return transporterPromise
+  return transporterPromise;
 }
 
 function getFromAddress() {
-  return process.env.EMAIL_FROM?.trim() || requireEnv('SMTP_USER')
+  return process.env.EMAIL_FROM?.trim() || requireEnv("SMTP_USER");
 }
 
 /**
@@ -72,54 +72,56 @@ function getFromAddress() {
  */
 export async function sendSignupEmail({ to, firstName }) {
   if (!isSignupEmailRequired()) {
-    console.info(`[email] Skipping signup email in local development (to=${to})`)
-    return { skipped: true }
+    console.info(
+      `[email] Skipping signup email in local development (to=${to})`,
+    );
+    return { skipped: true };
   }
 
-  const displayName = String(firstName || '').trim() || 'there'
-  const from = getFromAddress()
-  const subject = 'Welcome to Soccer Predictor'
+  const displayName = String(firstName || "").trim() || "there";
+  const from = getFromAddress();
+  const subject = "Welcome to Soccer Predictor";
   const text = [
     `Hi ${displayName},`,
-    '',
-    'Thanks for signing up for Soccer Predictor.',
-    'Your account is ready — sign in with this email to start making predictions.',
-    '',
-    'If you did not create this account, you can ignore this message.',
-  ].join('\n')
+    "",
+    "Thanks for signing up for Soccer Predictor.",
+    "Your account is ready — sign in with this email to start making predictions.",
+    "",
+    "If you did not create this account, you can ignore this message.",
+  ].join("\n");
 
   const html = `
     <p>Hi ${escapeHtml(displayName)},</p>
     <p>Thanks for signing up for <strong>Soccer Predictor</strong>.</p>
     <p>Your account is ready — sign in with this email to start making predictions.</p>
     <p>If you did not create this account, you can ignore this message.</p>
-  `.trim()
+  `.trim();
 
   try {
-    const transporter = await getTransporter()
+    const transporter = await getTransporter();
     const info = await transporter.sendMail({
       from,
       to,
       subject,
       text,
       html,
-    })
+    });
 
     if (info.rejected?.length) {
-      throw new EmailSendError(`Email provider rejected address: ${to}`)
+      throw new EmailSendError(`Email provider rejected address: ${to}`);
     }
 
-    return info
+    return info;
   } catch (err) {
-    if (err instanceof EmailSendError) throw err
-    throw new EmailSendError('Failed to send signup email', { cause: err })
+    if (err instanceof EmailSendError) throw err;
+    throw new EmailSendError("Failed to send signup email", { cause: err });
   }
 }
 
 function escapeHtml(value) {
   return String(value)
-    .replaceAll('&', '&amp;')
-    .replaceAll('<', '&lt;')
-    .replaceAll('>', '&gt;')
-    .replaceAll('"', '&quot;')
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
 }
