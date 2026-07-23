@@ -541,6 +541,38 @@ export async function regenerateInviteCode(leagueId, userId) {
   return inviteCode
 }
 
+/**
+ * Permanently delete a private league and cascaded members/picks/invites/rules.
+ * The default open league cannot be deleted.
+ */
+export async function deleteLeague(leagueId, userId) {
+  await requireCommissioner(leagueId, userId)
+
+  const pool = getPool()
+  const [rows] = await pool.query(
+    `SELECT id, name, slug, is_default FROM leagues WHERE id = :leagueId LIMIT 1`,
+    { leagueId },
+  )
+  if (!rows[0]) {
+    const error = new Error('League not found')
+    error.status = 404
+    throw error
+  }
+  if (rows[0].is_default) {
+    const error = new Error('The default open league cannot be deleted')
+    error.status = 403
+    throw error
+  }
+
+  await pool.query(`DELETE FROM leagues WHERE id = :leagueId`, { leagueId })
+
+  return {
+    id: rows[0].id,
+    name: rows[0].name,
+    slug: rows[0].slug,
+  }
+}
+
 export async function createEmailInvite({
   leagueId,
   invitedByUserId,

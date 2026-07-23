@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { getCompetitionByCode } from '../competitions'
 import { useAuth } from '../auth/AuthContext'
 
@@ -12,6 +12,7 @@ function isCommissioner(league, userId) {
 
 export default function LeagueDetailPage() {
   const { slug } = useParams()
+  const navigate = useNavigate()
   const { user } = useAuth()
   const [league, setLeague] = useState(null)
   const [standings, setStandings] = useState([])
@@ -27,6 +28,8 @@ export default function LeagueDetailPage() {
   const [scoringMessage, setScoringMessage] = useState(null)
   const [scoringError, setScoringError] = useState(null)
   const [savingScoring, setSavingScoring] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState(null)
 
   const commissioner = isCommissioner(league, user?.id)
   const tournament = league
@@ -165,6 +168,31 @@ export default function LeagueDetailPage() {
       setScoringError(err instanceof Error ? err.message : String(err))
     } finally {
       setSavingScoring(false)
+    }
+  }
+
+  const deleteLeaguePermanently = async () => {
+    if (!league || league.isDefault) return
+    const confirmed = window.confirm(
+      `Permanently delete "${league.name}"?\n\nThis removes all members, invites, and picks for this league. This cannot be undone.`,
+    )
+    if (!confirmed) return
+
+    setDeleteError(null)
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/leagues/${league.id}`, {
+        method: 'DELETE',
+        credentials: 'include',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || `Could not delete league (${res.status})`)
+      }
+      navigate('/leagues', { replace: true })
+    } catch (err) {
+      setDeleteError(err instanceof Error ? err.message : String(err))
+      setDeleting(false)
     }
   }
 
@@ -409,6 +437,27 @@ export default function LeagueDetailPage() {
                 <p className="health-status health-status--error">{scoringError}</p>
               )}
             </form>
+
+            {!league.isDefault && (
+              <div className="commissioner-block commissioner-block--danger">
+                <h3>Delete league</h3>
+                <p>
+                  Permanently remove this league, its members, invites, and all
+                  score picks. This cannot be undone.
+                </p>
+                <button
+                  type="button"
+                  className="counter counter--danger"
+                  onClick={deleteLeaguePermanently}
+                  disabled={deleting}
+                >
+                  {deleting ? 'Deleting…' : 'Delete league permanently'}
+                </button>
+                {deleteError && (
+                  <p className="health-status health-status--error">{deleteError}</p>
+                )}
+              </div>
+            )}
           </section>
         )}
       </div>

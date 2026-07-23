@@ -6,6 +6,7 @@ import {
   buildJoinUrl,
   createEmailInvite,
   createLeague,
+  deleteLeague,
   getDefaultLeague,
   getLeagueBySlug,
   getLeagueStandings,
@@ -217,6 +218,25 @@ leaguesRouter.post(
     }
   },
 )
+
+leaguesRouter.delete('/:leagueId', requireAuth, async (req, res, next) => {
+  try {
+    const leagueId = Number(req.params.leagueId)
+    if (!Number.isInteger(leagueId) || leagueId < 1) {
+      res.status(400).json({ error: 'Invalid league id' })
+      return
+    }
+
+    const deleted = await deleteLeague(leagueId, req.session.userId)
+    res.json({ deleted: true, league: deleted })
+  } catch (err) {
+    if (err.status) {
+      res.status(err.status).json({ error: err.message })
+      return
+    }
+    next(err)
+  }
+})
 
 /**
  * Future commissioner endpoint: update scoring knobs for a league you own.

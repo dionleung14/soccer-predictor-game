@@ -1122,6 +1122,27 @@
   margin-top: 10px;
 }
 
+.commissioner-block--danger {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+
+  p {
+    margin: 0 0 12px;
+    color: var(--text);
+    font-size: 14px;
+  }
+}
+
+.counter--danger {
+  color: var(--color-terracotta);
+  background: color-mix(in srgb, var(--color-terracotta) 12%, transparent);
+  border-color: transparent;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-terracotta);
+  }
+}
+
 .scoring-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
