@@ -30,6 +30,8 @@ export default function LeagueDetailPage() {
   const [savingScoring, setSavingScoring] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [deleteError, setDeleteError] = useState(null)
+  const [leaving, setLeaving] = useState(false)
+  const [leaveError, setLeaveError] = useState(null)
 
   const commissioner = isCommissioner(league, user?.id)
   const tournament = league
@@ -196,6 +198,42 @@ export default function LeagueDetailPage() {
     }
   }
 
+  const leaveLeague = async () => {
+    if (!league?.leave?.allowed) return
+    const confirmed = window.confirm(
+      `Leave "${league.name}"?\n\nYour picks for this league will be removed. You can rejoin later with an invite link if leaving is still open.`,
+    )
+    if (!confirmed) return
+
+    setLeaveError(null)
+    setLeaving(true)
+    try {
+      const res = await fetch(`/api/leagues/${league.id}/leave`, {
+        method: 'POST',
+        credentials: 'include',
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || `Could not leave league (${res.status})`)
+      }
+      navigate('/leagues', { replace: true })
+    } catch (err) {
+      setLeaveError(err instanceof Error ? err.message : String(err))
+      setLeaving(false)
+    }
+  }
+
+  const formatKickoff = (iso) => {
+    if (!iso) return null
+    return new Date(iso).toLocaleString(undefined, {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    })
+  }
+
   if (loading) {
     return (
       <section className="leagues-page">
@@ -265,6 +303,37 @@ export default function LeagueDetailPage() {
             <Link to={`/picks?leagueId=${league.id}`}>View my picks for this league</Link>
           </p>
         </section>
+
+        {!commissioner && (
+          <section className="league-panel">
+            <h2>Leave league</h2>
+            <p>
+              You can leave until the first{' '}
+              {tournament?.name || league.competitionCode} match kicks off
+              {league.leave?.firstKickoffAt
+                ? ` (${formatKickoff(league.leave.firstKickoffAt)})`
+                : ''}
+              . Your picks for this league are removed if you leave.
+            </p>
+            {league.leave?.allowed ? (
+              <button
+                type="button"
+                className="counter"
+                onClick={leaveLeague}
+                disabled={leaving}
+              >
+                {leaving ? 'Leaving…' : 'Leave league'}
+              </button>
+            ) : (
+              <p className="match-card__pick-hint">
+                {league.leave?.reason || 'Leaving is not available.'}
+              </p>
+            )}
+            {leaveError && (
+              <p className="health-status health-status--error">{leaveError}</p>
+            )}
+          </section>
+        )}
 
         <section className="league-panel">
           <h2>Standings</h2>

@@ -15,6 +15,7 @@ import {
   ensureLeagueMembership,
   joinLeagueByInviteCode,
   listLeaguesForUser,
+  leaveLeague,
   regenerateInviteCode,
   requireCommissioner,
   requireMembership,
@@ -134,6 +135,25 @@ leaguesRouter.get('/:leagueId/standings', requireAuth, async (req, res, next) =>
     await requireMembership(leagueId, req.session.userId)
     const payload = await getLeagueStandings(leagueId)
     res.json({ leagueId, ...payload })
+  } catch (err) {
+    if (err.status) {
+      res.status(err.status).json({ error: err.message })
+      return
+    }
+    next(err)
+  }
+})
+
+leaguesRouter.post('/:leagueId/leave', requireAuth, async (req, res, next) => {
+  try {
+    const leagueId = Number(req.params.leagueId)
+    if (!Number.isInteger(leagueId) || leagueId < 1) {
+      res.status(400).json({ error: 'Invalid league id' })
+      return
+    }
+
+    const result = await leaveLeague(leagueId, req.session.userId)
+    res.json(result)
   } catch (err) {
     if (err.status) {
       res.status(err.status).json({ error: err.message })

@@ -296,6 +296,130 @@ export async function requireCommissioner(leagueId, userId) {
   return { league: leagues[0], membership }
 }
 
+/**
+ * Earliest scheduled kickoff for a tournament (competition code).
+ * @returns {Promise<Date|null>}
+ */
+export async function getFirstKickoffAt(competitionCode) {
+  const pool = getPool()
+  const [rows] = await pool.query(
+    `SELECT kickoff_at
+     FROM fixtures
+     WHERE competition_code = :competitionCode
+       AND kickoff_at IS NOT NULL
+     ORDER BY kickoff_at ASC
+     LIMIT 1`,
+    { competitionCode: String(competitionCode).toUpperCase() },
+  )
+  if (!rows[0]?.kickoff_at) return null
+  return new Date(rows[0].kickoff_at)
+}
+
+export async function getLeaveEligibility(league, membership, viewerUserId = null) {
+  const firstKickoffAt = await getFirstKickoffAt(league.competitionCode)
+  const kickoffPassed =
+    firstKickoffAt != null && firstKickoffAt.getTime() <= Date.now()
+
+  const base = {
+    firstKickoffAt: firstKickoffAt ? firstKickoffAt.toISOString() : null,
+  }
+
+  if (!membership) {
+    return { ...base, allowed: false, reason: 'You are not a member of this league' }
+  }
+
+  const isCommissioner =
+    membership.member_role === 'commissioner' ||
+    (viewerUserId != null && league.commissionerUserId === viewerUserId)
+
+  if (isCommissioner) {
+    return {
+      ...base,
+      allowed: false,
+      reason: 'Commissioners cannot leave. Delete the league instead.',
+    }
+  }
+
+  if (kickoffPassed) {
+    return {
+      ...base,
+      allowed: false,
+      reason:
+        'Leaving is locked after the first match of this tournament kicks off.',
+    }
+  }
+
+  return { ...base, allowed: true, reason: null }
+}
+
+/**
+ * Leave a league as a regular member. Locked after first tournament kickoff.
+ * Removes membership and the user's picks for this league.
+ */
+export async function leaveLeague(leagueId, userId) {
+  const league = await getLeagueById(leagueId, { viewerUserId: userId })
+  if (!league) {
+    const error = new Error('League not found')
+    error.status = 404
+    throw error
+  }
+
+  const membership = await getMembership(leagueId, userId)
+  if (!membership) {
+    const error = new Error('You are not a member of this league')
+    error.status = 403
+    throw error
+  }
+
+  if (
+    membership.member_role === 'commissioner' ||
+    league.commissionerUserId === userId
+  ) {
+    const error = new Error(
+      'Commissioners cannot leave. Delete the league instead.',
+    )
+    error.status = 403
+    throw error
+  }
+
+  const firstKickoffAt = await getFirstKickoffAt(league.competitionCode)
+  if (firstKickoffAt && firstKickoffAt.getTime() <= Date.now()) {
+    const error = new Error(
+      'Leaving is locked after the first match of this tournament kicks off.',
+    )
+    error.status = 403
+    throw error
+  }
+
+  const pool = getPool()
+  const connection = await pool.getConnection()
+  try {
+    await connection.beginTransaction()
+    await connection.query(
+      `DELETE FROM match_predictions
+       WHERE league_id = :leagueId AND user_id = :userId`,
+      { leagueId, userId },
+    )
+    await connection.query(
+      `DELETE FROM league_members
+       WHERE league_id = :leagueId AND user_id = :userId`,
+      { leagueId, userId },
+    )
+    await connection.commit()
+  } catch (err) {
+    await connection.rollback()
+    throw err
+  } finally {
+    connection.release()
+  }
+
+  return {
+    leagueId,
+    left: true,
+    firstKickoffAt: firstKickoffAt ? firstKickoffAt.toISOString() : null,
+  }
+}
+
 export async function createLeague({
   name,
   description = null,
@@ -465,6 +589,10 @@ export async function getLeagueById(
 
   if (includeMembers) {
     league.members = await loadLeagueMembers(leagueId)
+  }
+
+  if (viewerUserId) {
+    league.leave = await getLeaveEligibility(league, membership, viewerUserId)
   }
 
   return league
