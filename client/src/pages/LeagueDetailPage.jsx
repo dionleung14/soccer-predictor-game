@@ -32,6 +32,10 @@ export default function LeagueDetailPage() {
   const [deleteError, setDeleteError] = useState(null)
   const [leaving, setLeaving] = useState(false)
   const [leaveError, setLeaveError] = useState(null)
+  const [detailsDraft, setDetailsDraft] = useState({ name: '', description: '' })
+  const [savingDetails, setSavingDetails] = useState(false)
+  const [detailsMessage, setDetailsMessage] = useState(null)
+  const [detailsError, setDetailsError] = useState(null)
 
   const commissioner = isCommissioner(league, user?.id)
   const tournament = league
@@ -56,6 +60,10 @@ export default function LeagueDetailPage() {
       }
       setLeague(data.league)
       setScoringDraft(data.league.scoringRules || null)
+      setDetailsDraft({
+        name: data.league.name || '',
+        description: data.league.description || '',
+      })
 
       const standingsRes = await fetch(
         `/api/leagues/${data.league.id}/standings`,
@@ -136,6 +144,43 @@ export default function LeagueDetailPage() {
       setCopyMessage(err instanceof Error ? err.message : String(err))
     } finally {
       setRegenerating(false)
+    }
+  }
+
+  const saveLeagueDetails = async (event) => {
+    event.preventDefault()
+    if (!league?.detailsEdit?.allowed) return
+    setDetailsError(null)
+    setDetailsMessage(null)
+    setSavingDetails(true)
+    try {
+      const res = await fetch(`/api/leagues/${league.id}`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: detailsDraft.name.trim(),
+          description: detailsDraft.description.trim(),
+        }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        throw new Error(data.error || `Could not update league (${res.status})`)
+      }
+      setLeague(data.league)
+      setDetailsDraft({
+        name: data.league.name || '',
+        description: data.league.description || '',
+      })
+      setScoringDraft(data.league.scoringRules || null)
+      setDetailsMessage('League details updated')
+      if (data.league.slug && data.league.slug !== slug) {
+        navigate(`/leagues/${data.league.slug}`, { replace: true })
+      }
+    } catch (err) {
+      setDetailsError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSavingDetails(false)
     }
   }
 
@@ -385,6 +430,69 @@ export default function LeagueDetailPage() {
         {commissioner && (
           <section className="league-panel league-panel--commissioner">
             <h2>Commissioner tools</h2>
+
+            <form className="commissioner-block" onSubmit={saveLeagueDetails}>
+              <h3>League details</h3>
+              <p className="match-card__pick-hint">
+                Editable until {league.detailsEdit?.lockHoursBeforeKickoff ?? 24}{' '}
+                hours before the first{' '}
+                {tournament?.name || league.competitionCode} match
+                {league.detailsEdit?.lockAt
+                  ? ` (locks ${formatKickoff(league.detailsEdit.lockAt)})`
+                  : ''}
+                . Tournament cannot be changed.
+              </p>
+              {league.detailsEdit?.allowed ? (
+                <>
+                  <label>
+                    Name
+                    <input
+                      type="text"
+                      maxLength={120}
+                      value={detailsDraft.name}
+                      onChange={(e) =>
+                        setDetailsDraft((prev) => ({
+                          ...prev,
+                          name: e.target.value,
+                        }))
+                      }
+                      required
+                    />
+                  </label>
+                  <label>
+                    Description
+                    <textarea
+                      maxLength={500}
+                      rows={3}
+                      value={detailsDraft.description}
+                      onChange={(e) =>
+                        setDetailsDraft((prev) => ({
+                          ...prev,
+                          description: e.target.value,
+                        }))
+                      }
+                    />
+                  </label>
+                  <button
+                    type="submit"
+                    className="counter"
+                    disabled={savingDetails || !detailsDraft.name.trim()}
+                  >
+                    {savingDetails ? 'Saving…' : 'Save details'}
+                  </button>
+                </>
+              ) : (
+                <p className="match-card__pick-hint">
+                  {league.detailsEdit?.reason || 'League details cannot be edited.'}
+                </p>
+              )}
+              {detailsMessage && (
+                <p className="health-status health-status--ok">{detailsMessage}</p>
+              )}
+              {detailsError && (
+                <p className="health-status health-status--error">{detailsError}</p>
+              )}
+            </form>
 
             <div className="commissioner-block">
               <h3>Invite link</h3>

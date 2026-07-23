@@ -19,6 +19,7 @@ import {
   regenerateInviteCode,
   requireCommissioner,
   requireMembership,
+  updateLeagueDetails,
 } from '../leagues/leagueService.js'
 
 export const leaguesRouter = Router()
@@ -249,6 +250,34 @@ leaguesRouter.delete('/:leagueId', requireAuth, async (req, res, next) => {
 
     const deleted = await deleteLeague(leagueId, req.session.userId)
     res.json({ deleted: true, league: deleted })
+  } catch (err) {
+    if (err.status) {
+      res.status(err.status).json({ error: err.message })
+      return
+    }
+    next(err)
+  }
+})
+
+leaguesRouter.patch('/:leagueId', requireAuth, async (req, res, next) => {
+  try {
+    const leagueId = Number(req.params.leagueId)
+    if (!Number.isInteger(leagueId) || leagueId < 1) {
+      res.status(400).json({ error: 'Invalid league id' })
+      return
+    }
+
+    const { name, description } = req.body ?? {}
+    if (name === undefined && description === undefined) {
+      res.status(400).json({ error: 'Provide name and/or description to update' })
+      return
+    }
+
+    const league = await updateLeagueDetails(leagueId, req.session.userId, {
+      name,
+      description,
+    })
+    res.json({ league })
   } catch (err) {
     if (err.status) {
       res.status(err.status).json({ error: err.message })

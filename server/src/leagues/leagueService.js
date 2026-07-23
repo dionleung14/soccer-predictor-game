@@ -4,6 +4,8 @@ import { isCachedCompetition } from '../fixtures/competitionCodes.js'
 
 export const DEFAULT_LEAGUE_SLUG = 'open-world-cup'
 export const DEFAULT_COMPETITION_CODE = 'WC'
+/** Commissioners may edit name/description until this many hours before first kickoff. */
+export const DETAILS_EDIT_LOCK_HOURS_BEFORE_KICKOFF = 24
 
 export const DEFAULT_SCORING_RULES = {
   pointsExactScore: 5,
@@ -352,6 +354,102 @@ export async function getLeaveEligibility(league, membership, viewerUserId = nul
   return { ...base, allowed: true, reason: null }
 }
 
+export async function getDetailsEditEligibility(league, isCommissioner) {
+  const firstKickoffAt = await getFirstKickoffAt(league.competitionCode)
+  const lockAt =
+    firstKickoffAt != null
+      ? new Date(
+          firstKickoffAt.getTime() -
+            DETAILS_EDIT_LOCK_HOURS_BEFORE_KICKOFF * 60 * 60 * 1000,
+        )
+      : null
+  const locked = lockAt != null && lockAt.getTime() <= Date.now()
+
+  const base = {
+    firstKickoffAt: firstKickoffAt ? firstKickoffAt.toISOString() : null,
+    lockAt: lockAt ? lockAt.toISOString() : null,
+    lockHoursBeforeKickoff: DETAILS_EDIT_LOCK_HOURS_BEFORE_KICKOFF,
+  }
+
+  if (!isCommissioner) {
+    return {
+      ...base,
+      allowed: false,
+      reason: 'Only the league commissioner can edit league details',
+    }
+  }
+
+  if (league.isDefault) {
+    return {
+      ...base,
+      allowed: false,
+      reason: 'The default open league details cannot be edited',
+    }
+  }
+
+  if (locked) {
+    return {
+      ...base,
+      allowed: false,
+      reason: `League details lock ${DETAILS_EDIT_LOCK_HOURS_BEFORE_KICKOFF} hours before the first match kicks off.`,
+    }
+  }
+
+  return { ...base, allowed: true, reason: null }
+}
+
+/**
+ * Update league name/description. Locked 24h before first tournament kickoff.
+ */
+export async function updateLeagueDetails(leagueId, userId, { name, description }) {
+  await requireCommissioner(leagueId, userId)
+
+  const league = await getLeagueById(leagueId, { viewerUserId: userId })
+  if (!league) {
+    const error = new Error('League not found')
+    error.status = 404
+    throw error
+  }
+
+  const eligibility = await getDetailsEditEligibility(league, true)
+  if (!eligibility.allowed) {
+    const error = new Error(eligibility.reason || 'League details cannot be edited')
+    error.status = 403
+    throw error
+  }
+
+  const trimmedName = String(name ?? league.name).trim()
+  if (!trimmedName || trimmedName.length > 120) {
+    const error = new Error('League name is required (max 120 characters)')
+    error.status = 400
+    throw error
+  }
+
+  const nextDescription =
+    description === undefined
+      ? league.description
+      : description == null
+        ? null
+        : String(description).trim().slice(0, 500) || null
+
+  const pool = getPool()
+  await pool.query(
+    `UPDATE leagues
+     SET name = :name, description = :description
+     WHERE id = :leagueId`,
+    {
+      leagueId,
+      name: trimmedName,
+      description: nextDescription,
+    },
+  )
+
+  return getLeagueById(leagueId, {
+    viewerUserId: userId,
+    includeMembers: true,
+  })
+}
+
 /**
  * Leave a league as a regular member. Locked after first tournament kickoff.
  * Removes membership and the user's picks for this league.
@@ -593,6 +691,7 @@ export async function getLeagueById(
 
   if (viewerUserId) {
     league.leave = await getLeaveEligibility(league, membership, viewerUserId)
+    league.detailsEdit = await getDetailsEditEligibility(league, isCommissioner)
   }
 
   return league
