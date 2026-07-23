@@ -29,15 +29,38 @@ CREATE TABLE IF NOT EXISTS leagues (
   slug VARCHAR(120) NOT NULL,
   description VARCHAR(500) NULL,
   commissioner_user_id INT UNSIGNED NULL,
+  invite_code VARCHAR(32) NULL,
   is_default TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id),
   UNIQUE KEY uq_leagues_slug (slug),
+  UNIQUE KEY uq_leagues_invite_code (invite_code),
   KEY idx_leagues_commissioner (commissioner_user_id),
   CONSTRAINT fk_leagues_commissioner
     FOREIGN KEY (commissioner_user_id) REFERENCES users (id)
     ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS league_invites (
+  id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+  league_id INT UNSIGNED NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  invited_by_user_id INT UNSIGNED NOT NULL,
+  invite_code VARCHAR(32) NOT NULL,
+  status ENUM('pending', 'accepted', 'revoked') NOT NULL DEFAULT 'pending',
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  accepted_at TIMESTAMP NULL,
+  PRIMARY KEY (id),
+  UNIQUE KEY uq_league_invites_league_email (league_id, email),
+  KEY idx_league_invites_code (invite_code),
+  KEY idx_league_invites_email (email),
+  CONSTRAINT fk_league_invites_league
+    FOREIGN KEY (league_id) REFERENCES leagues (id)
+    ON DELETE CASCADE,
+  CONSTRAINT fk_league_invites_invited_by
+    FOREIGN KEY (invited_by_user_id) REFERENCES users (id)
+    ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS league_members (

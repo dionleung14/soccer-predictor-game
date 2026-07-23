@@ -119,6 +119,74 @@ export async function sendSignupEmail({ to, firstName }) {
   }
 }
 
+/**
+ * Sends a league invite email when SMTP is required by the environment.
+ * In local development, skips SMTP and returns { skipped: true } unless forced.
+ * @param {{ to: string, leagueName: string, inviterName: string, joinUrl: string }} params
+ * @returns {Promise<{ skipped: true } | import('nodemailer').SentMessageInfo>}
+ */
+export async function sendLeagueInviteEmail({
+  to,
+  leagueName,
+  inviterName,
+  joinUrl,
+}) {
+  if (!isSignupEmailRequired()) {
+    console.info(
+      `[email] Skipping league invite email in local development (to=${to})`,
+    );
+    return { skipped: true };
+  }
+
+  const league = String(leagueName || "").trim() || "a league";
+  const inviter = String(inviterName || "").trim() || "A commissioner";
+  const url = String(joinUrl || "").trim();
+  if (!url) {
+    throw new EmailSendError("joinUrl is required for league invite emails");
+  }
+
+  const from = getFromAddress();
+  const subject = `You're invited to join ${league} on Soccer Predictor`;
+  const text = [
+    `Hi,`,
+    "",
+    `${inviter} invited you to join the fantasy league "${league}" on Soccer Predictor.`,
+    "",
+    `Join here: ${url}`,
+    "",
+    "You'll need an account to accept the invite. If you did not expect this message, you can ignore it.",
+  ].join("\n");
+
+  const html = `
+    <p>Hi,</p>
+    <p><strong>${escapeHtml(inviter)}</strong> invited you to join the fantasy league <strong>${escapeHtml(league)}</strong> on Soccer Predictor.</p>
+    <p><a href="${escapeHtml(url)}">Join the league</a></p>
+    <p>You'll need an account to accept the invite. If you did not expect this message, you can ignore it.</p>
+  `.trim();
+
+  try {
+    const transporter = await getTransporter();
+    const info = await transporter.sendMail({
+      from,
+      to,
+      subject,
+      text,
+      html,
+    });
+
+    if (info.rejected?.length) {
+      throw new EmailSendError(`Email provider rejected address: ${to}`);
+    }
+    console.info(`[email] League invite email sent to ${to}`);
+    return info;
+  } catch (err) {
+    if (err instanceof EmailSendError) throw err;
+    throw new EmailSendError("Failed to send league invite email", {
+      cause: err,
+    });
+  }
+}
+
 function escapeHtml(value) {
   return String(value)
     .replaceAll("&", "&amp;")

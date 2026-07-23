@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
 const INITIAL_FORM = {
@@ -7,9 +7,16 @@ const INITIAL_FORM = {
   password: '',
 }
 
+function safeNextPath(next) {
+  if (!next || typeof next !== 'string') return '/profile'
+  if (!next.startsWith('/') || next.startsWith('//')) return '/profile'
+  return next
+}
+
 export default function LoginForm() {
   const { login } = useAuth()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const [form, setForm] = useState(INITIAL_FORM)
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState(null)
@@ -28,7 +35,7 @@ export default function LoginForm() {
         password: form.password,
       })
       setForm(INITIAL_FORM)
-      navigate('/profile', { replace: true })
+      navigate(safeNextPath(searchParams.get('next')), { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

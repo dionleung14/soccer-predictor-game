@@ -8,6 +8,9 @@ import LoginPage from './pages/LoginPage'
 import ProfilePage from './pages/ProfilePage'
 import MyPicksPage from './pages/MyPicksPage'
 import CompetitionPage from './pages/CompetitionPage'
+import LeaguesPage from './pages/LeaguesPage'
+import LeagueDetailPage from './pages/LeagueDetailPage'
+import JoinLeaguePage from './pages/JoinLeaguePage'
 
 function App() {
   return (
@@ -18,6 +21,23 @@ function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/competitions/:competitionSlug" element={<CompetitionPage />} />
+          <Route path="/leagues/join/:inviteCode" element={<JoinLeaguePage />} />
+          <Route
+            path="/leagues"
+            element={
+              <ProtectedRoute>
+                <LeaguesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/leagues/:slug"
+            element={
+              <ProtectedRoute>
+                <LeagueDetailPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/profile"
             element={
