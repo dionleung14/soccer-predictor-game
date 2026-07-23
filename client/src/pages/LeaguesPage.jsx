@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { COMPETITIONS, getCompetitionByCode } from '../competitions'
 
 export default function LeaguesPage() {
   const navigate = useNavigate()
@@ -8,6 +9,7 @@ export default function LeaguesPage() {
   const [error, setError] = useState(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
+  const [competitionCode, setCompetitionCode] = useState('WC')
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState(null)
 
@@ -44,6 +46,7 @@ export default function LeaguesPage() {
         body: JSON.stringify({
           name: name.trim(),
           description: description.trim() || undefined,
+          competitionCode,
         }),
       })
       const data = await res.json().catch(() => ({}))
@@ -52,6 +55,7 @@ export default function LeaguesPage() {
       }
       setName('')
       setDescription('')
+      setCompetitionCode('WC')
       navigate(`/leagues/${data.league.slug}`)
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : String(err))
@@ -65,8 +69,8 @@ export default function LeaguesPage() {
       <div className="leagues-page__intro">
         <h1>Leagues</h1>
         <p>
-          Create a private league, invite friends, and compete on score picks. You
-          become commissioner of any league you create.
+          Create a private league for one tournament, invite friends, and compete on
+          score picks. You become commissioner of any league you create.
         </p>
       </div>
 
@@ -83,6 +87,21 @@ export default function LeaguesPage() {
             required
             placeholder="Office World Cup pool"
           />
+        </label>
+        <label>
+          Tournament
+          <select
+            name="competitionCode"
+            value={competitionCode}
+            onChange={(e) => setCompetitionCode(e.target.value)}
+            required
+          >
+            {COMPETITIONS.map((competition) => (
+              <option key={competition.code} value={competition.code}>
+                {competition.name}
+              </option>
+            ))}
+          </select>
         </label>
         <label>
           Description <span className="leagues-optional">(optional)</span>
@@ -112,18 +131,25 @@ export default function LeaguesPage() {
         )}
         {leagues.length > 0 && (
           <ul className="leagues-list__items">
-            {leagues.map((league) => (
-              <li key={league.id}>
-                <Link to={`/leagues/${league.slug}`} className="leagues-list__card">
-                  <strong>{league.name}</strong>
-                  <span>
-                    {league.memberRole === 'commissioner' ? 'Commissioner' : 'Member'}
-                    {league.isDefault ? ' · Open league' : ''}
-                  </span>
-                  {league.description && <span>{league.description}</span>}
-                </Link>
-              </li>
-            ))}
+            {leagues.map((league) => {
+              const tournament =
+                getCompetitionByCode(league.competitionCode)?.name ||
+                league.competitionCode
+              return (
+                <li key={league.id}>
+                  <Link to={`/leagues/${league.slug}`} className="leagues-list__card">
+                    <strong>{league.name}</strong>
+                    <span>
+                      {tournament}
+                      {' · '}
+                      {league.memberRole === 'commissioner' ? 'Commissioner' : 'Member'}
+                      {league.isDefault ? ' · Open league' : ''}
+                    </span>
+                    {league.description && <span>{league.description}</span>}
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         )}
       </div>

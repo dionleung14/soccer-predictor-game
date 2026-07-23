@@ -176,6 +176,44 @@ async function ensureLeagueInvites(connection) {
   console.log(`Migration applied: ${migrationName}`)
 }
 
+async function ensureLeagueCompetitionCode(connection) {
+  const migrationName = '007_league_competition_code'
+  const [applied] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM schema_migrations WHERE name = :name`,
+    { name: migrationName },
+  )
+  if (Number(applied[0].cnt) > 0) {
+    return
+  }
+
+  const [col] = await connection.query(
+    `SELECT COUNT(*) AS cnt
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'leagues'
+       AND COLUMN_NAME = 'competition_code'`,
+  )
+  if (Number(col[0].cnt) === 0) {
+    await connection.query(
+      `ALTER TABLE leagues
+       ADD COLUMN competition_code VARCHAR(16) NOT NULL DEFAULT 'WC'
+         AFTER invite_code,
+       ADD KEY idx_leagues_competition (competition_code)`,
+    )
+  }
+
+  await connection.query(
+    `UPDATE leagues SET competition_code = 'WC'
+     WHERE competition_code IS NULL OR competition_code = ''`,
+  )
+
+  await connection.query(
+    `INSERT IGNORE INTO schema_migrations (name) VALUES (:name)`,
+    { name: migrationName },
+  )
+  console.log(`Migration applied: ${migrationName}`)
+}
+
 async function migrate() {
   const pool = getPool()
   const connection = await pool.getConnection()
@@ -186,6 +224,7 @@ async function migrate() {
     await ensureFantasyTablesSeeded(connection)
     await ensureFixturesCacheTables(connection)
     await ensureLeagueInvites(connection)
+    await ensureLeagueCompetitionCode(connection)
     await connection.commit()
     console.log('Migrations up to date')
   } catch (err) {

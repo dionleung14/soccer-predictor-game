@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { COMPETITIONS } from '../competitions'
+import { getCompetitionByCode } from '../competitions'
 import { useAuth } from '../auth/AuthContext'
 
 function isCommissioner(league, userId) {
@@ -29,6 +29,9 @@ export default function LeagueDetailPage() {
   const [savingScoring, setSavingScoring] = useState(false)
 
   const commissioner = isCommissioner(league, user?.id)
+  const tournament = league
+    ? getCompetitionByCode(league.competitionCode)
+    : null
 
   const joinUrl = useMemo(() => {
     if (!league?.inviteCode || typeof window === 'undefined') return ''
@@ -195,6 +198,9 @@ export default function LeagueDetailPage() {
         <h1>{league.name}</h1>
         {league.description && <p>{league.description}</p>}
         <p>
+          Tournament:{' '}
+          <strong>{tournament?.name || league.competitionCode}</strong>
+          {' · '}
           You are {league.memberRole === 'commissioner' ? 'the commissioner' : 'a member'}
           {league.scoringRules && (
             <>
@@ -209,16 +215,24 @@ export default function LeagueDetailPage() {
       <div className="league-hub">
         <section className="league-panel">
           <h2>Make picks</h2>
-          <p>Score picks for this league apply only to these tournaments:</p>
-          <ul className="league-pick-links">
-            {COMPETITIONS.map((competition) => (
-              <li key={competition.code}>
-                <Link to={`${competition.path}?leagueId=${league.id}`}>
-                  {competition.name}
-                </Link>
-              </li>
-            ))}
-          </ul>
+          <p>
+            This league only scores picks for{' '}
+            <strong>{tournament?.name || league.competitionCode}</strong>.
+          </p>
+          {tournament ? (
+            <p>
+              <Link
+                className="league-pick-cta"
+                to={`${tournament.path}?leagueId=${league.id}`}
+              >
+                Open {tournament.name} fixtures
+              </Link>
+            </p>
+          ) : (
+            <p className="health-status health-status--error">
+              Unknown tournament code: {league.competitionCode}
+            </p>
+          )}
           <p>
             <Link to={`/picks?leagueId=${league.id}`}>View my picks for this league</Link>
           </p>

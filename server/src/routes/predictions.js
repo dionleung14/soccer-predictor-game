@@ -160,6 +160,27 @@ predictionsRouter.put('/', requireAuth, async (req, res, next) => {
       bodyLeagueId ?? req.query.leagueId,
       req.session.userId,
     )
+    const league = await getLeagueById(leagueId, {
+      viewerUserId: req.session.userId,
+    })
+    if (!league) {
+      res.status(404).json({ error: 'League not found' })
+      return
+    }
+
+    const resolvedCompetition = String(
+      competitionCode || league.competitionCode || 'WC',
+    )
+      .trim()
+      .toUpperCase()
+      .slice(0, 16)
+
+    if (resolvedCompetition !== league.competitionCode) {
+      res.status(400).json({
+        error: `This league only accepts picks for ${league.competitionCode}`,
+      })
+      return
+    }
 
     const pool = getPool()
     await pool.query(
@@ -183,7 +204,7 @@ predictionsRouter.put('/', requireAuth, async (req, res, next) => {
         leagueId,
         userId: req.session.userId,
         externalMatchId: Number(externalMatchId),
-        competitionCode: String(competitionCode || 'WC').slice(0, 16),
+        competitionCode: resolvedCompetition,
         homeTeamName: String(homeTeamName).slice(0, 120),
         awayTeamName: String(awayTeamName).slice(0, 120),
         matchKickoffAt: matchKickoffAt ? new Date(matchKickoffAt) : null,

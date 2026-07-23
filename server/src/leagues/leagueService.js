@@ -1,7 +1,9 @@
 import crypto from 'node:crypto'
 import { getPool } from '../db/pool.js'
+import { isCachedCompetition } from '../fixtures/competitionCodes.js'
 
 export const DEFAULT_LEAGUE_SLUG = 'open-world-cup'
+export const DEFAULT_COMPETITION_CODE = 'WC'
 
 export const DEFAULT_SCORING_RULES = {
   pointsExactScore: 5,
@@ -11,6 +13,20 @@ export const DEFAULT_SCORING_RULES = {
 }
 
 const FINISHED_STATUSES = new Set(['FINISHED', 'AWARDED'])
+
+export function normalizeCompetitionCode(code) {
+  const normalized = String(code || '')
+    .trim()
+    .toUpperCase()
+  if (!isCachedCompetition(normalized)) {
+    const error = new Error(
+      `competitionCode must be one of: WC, PL, EC (got ${code || 'empty'})`,
+    )
+    error.status = 400
+    throw error
+  }
+  return normalized
+}
 
 export function mapScoringRules(row) {
   return {
@@ -29,6 +45,7 @@ export function mapLeague(row, { includeInviteCode = false } = {}) {
     slug: row.slug,
     description: row.description,
     commissionerUserId: row.commissioner_user_id,
+    competitionCode: row.competition_code || DEFAULT_COMPETITION_CODE,
     isDefault: Boolean(row.is_default),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -154,15 +171,20 @@ export async function ensureDefaultLeague(connection = null) {
 
   const inviteCode = await allocateUniqueInviteCode(db)
   const [result] = await db.query(
-    `INSERT INTO leagues (name, slug, description, invite_code, is_default)
+    `INSERT INTO leagues (name, slug, description, invite_code, competition_code, is_default)
      VALUES (
        'Open World Cup',
        :slug,
        'Default fantasy pick league. Future private leagues can copy these scoring knobs.',
        :inviteCode,
+       :competitionCode,
        1
      )`,
-    { slug: DEFAULT_LEAGUE_SLUG, inviteCode },
+    {
+      slug: DEFAULT_LEAGUE_SLUG,
+      inviteCode,
+      competitionCode: DEFAULT_COMPETITION_CODE,
+    },
   )
 
   const leagueId = result.insertId
@@ -277,6 +299,7 @@ export async function requireCommissioner(leagueId, userId) {
 export async function createLeague({
   name,
   description = null,
+  competitionCode,
   commissionerUserId,
   scoringRules,
 }) {
@@ -290,6 +313,7 @@ export async function createLeague({
   const trimmedDescription =
     description == null ? null : String(description).trim().slice(0, 500) || null
   const rules = normalizeScoringInput(scoringRules)
+  const normalizedCompetition = normalizeCompetitionCode(competitionCode)
 
   const pool = getPool()
   const connection = await pool.getConnection()
@@ -299,14 +323,21 @@ export async function createLeague({
     const inviteCode = await allocateUniqueInviteCode(connection)
 
     const [result] = await connection.query(
-      `INSERT INTO leagues (name, slug, description, commissioner_user_id, invite_code, is_default)
-       VALUES (:name, :slug, :description, :commissionerUserId, :inviteCode, 0)`,
+      `INSERT INTO leagues (
+         name, slug, description, commissioner_user_id, invite_code,
+         competition_code, is_default
+       )
+       VALUES (
+         :name, :slug, :description, :commissionerUserId, :inviteCode,
+         :competitionCode, 0
+       )`,
       {
         name: trimmedName,
         slug,
         description: trimmedDescription,
         commissionerUserId,
         inviteCode,
+        competitionCode: normalizedCompetition,
       },
     )
 
@@ -620,6 +651,13 @@ export function scorePrediction(prediction, actual, rules) {
 }
 
 export async function getLeagueStandings(leagueId) {
+  const league = await getLeagueById(leagueId)
+  if (!league) {
+    const error = new Error('League not found')
+    error.status = 404
+    throw error
+  }
+
   const rules = await getLeagueScoringRules(leagueId)
   const members = await loadLeagueMembers(leagueId)
   const pool = getPool()
@@ -634,8 +672,9 @@ export async function getLeagueStandings(leagueId) {
             f.status
      FROM match_predictions p
      LEFT JOIN fixtures f ON f.external_match_id = p.external_match_id
-     WHERE p.league_id = :leagueId`,
-    { leagueId },
+     WHERE p.league_id = :leagueId
+       AND p.competition_code = :competitionCode`,
+    { leagueId, competitionCode: league.competitionCode },
   )
 
   const byUser = new Map(

@@ -63,10 +63,11 @@ leaguesRouter.get('/mine', requireAuth, async (req, res, next) => {
 
 leaguesRouter.post('/', requireAuth, async (req, res, next) => {
   try {
-    const { name, description, scoringRules } = req.body ?? {}
+    const { name, description, scoringRules, competitionCode } = req.body ?? {}
     const league = await createLeague({
       name,
       description,
+      competitionCode,
       commissionerUserId: req.session.userId,
       scoringRules,
     })

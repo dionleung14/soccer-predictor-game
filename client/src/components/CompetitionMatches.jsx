@@ -295,6 +295,15 @@ export default function CompetitionMatches({ competition }) {
             <Link to={`/leagues/${activeLeague.slug}`}>
               <strong>{activeLeague.name}</strong>
             </Link>
+            {activeLeague.competitionCode &&
+              activeLeague.competitionCode !== code && (
+                <>
+                  {' '}
+                  — this league is for {activeLeague.competitionCode}, not {code}.
+                  Open the correct tournament from the{' '}
+                  <Link to={`/leagues/${activeLeague.slug}`}>league hub</Link>.
+                </>
+              )}
           </p>
         )}
         {isAuthenticated && (

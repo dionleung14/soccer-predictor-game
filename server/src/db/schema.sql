@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS users (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Fantasy leagues. Commissioners own a league and can tune scoring later.
+-- Each league is scoped to a single football tournament (competition_code).
 CREATE TABLE IF NOT EXISTS leagues (
   id INT UNSIGNED NOT NULL AUTO_INCREMENT,
   name VARCHAR(120) NOT NULL,
@@ -30,6 +31,7 @@ CREATE TABLE IF NOT EXISTS leagues (
   description VARCHAR(500) NULL,
   commissioner_user_id INT UNSIGNED NULL,
   invite_code VARCHAR(32) NULL,
+  competition_code VARCHAR(16) NOT NULL DEFAULT 'WC',
   is_default TINYINT(1) NOT NULL DEFAULT 0,
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -37,6 +39,7 @@ CREATE TABLE IF NOT EXISTS leagues (
   UNIQUE KEY uq_leagues_slug (slug),
   UNIQUE KEY uq_leagues_invite_code (invite_code),
   KEY idx_leagues_commissioner (commissioner_user_id),
+  KEY idx_leagues_competition (competition_code),
   CONSTRAINT fk_leagues_commissioner
     FOREIGN KEY (commissioner_user_id) REFERENCES users (id)
     ON DELETE SET NULL

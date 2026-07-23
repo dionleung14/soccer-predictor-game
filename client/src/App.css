@@ -930,6 +930,15 @@
     color: var(--text-h);
   }
 
+  select {
+    font: inherit;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text-h);
+  }
+
   input,
   textarea {
     font: inherit;
@@ -1025,8 +1034,19 @@
   gap: 8px;
 }
 
-.league-pick-links a {
+.league-pick-links a,
+.league-pick-cta {
   font-weight: 600;
+}
+
+.league-pick-cta {
+  display: inline-flex;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--accent);
 }
 
 .league-members li {
