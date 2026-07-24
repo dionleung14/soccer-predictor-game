@@ -9,7 +9,7 @@ export default function HomePage() {
 
       <section className="home-competitions">
         <h2>Pick a competition</h2>
-        <p>Open a tournament to view fixtures and predict final scores.</p>
+        <p>Open a tournament to view fixtures and predict final scores. Compete against your friends and earn points for correct predictions.</p>
         <div className="home-competitions__grid">
           {COMPETITIONS.map(competition => (
             <Link

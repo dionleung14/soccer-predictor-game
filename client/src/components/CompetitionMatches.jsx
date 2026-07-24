@@ -183,7 +183,7 @@ function MatchCard({
 }
 
 export default function CompetitionMatches({ competition }) {
-  const { code, name, description } = competition
+  const { code, name, description, emblem } = competition
   const { isAuthenticated } = useAuth()
   const [searchParams] = useSearchParams()
   const leagueId = searchParams.get('leagueId')
@@ -284,6 +284,15 @@ export default function CompetitionMatches({ competition }) {
   return (
     <section className="wc-matches">
       <div className="wc-matches__intro">
+        {emblem && (
+          <img
+            className="wc-matches__emblem"
+            src={emblem}
+            alt=""
+            width={88}
+            height={88}
+          />
+        )}
         <h1>{name}</h1>
         <p>{description}</p>
         <p className="match-card__pick-hint">
@@ -323,7 +332,7 @@ export default function CompetitionMatches({ competition }) {
           <p className="health-status health-status--ok">
             {matches.length === 0
               ? `No matches stored yet for ${name}.`
-              : `${matches.length} match${matches.length === 1 ? '' : 'es'} loaded from database`}
+              : `${matches.length} match${matches.length === 1 ? '' : 'es'} found`}
           </p>
         )}
         {!loading && (

@@ -6,6 +6,7 @@ export const COMPETITIONS = [
     shortName: 'World Cup',
     path: '/competitions/world-cup',
     description: 'Predict final scores for FIFA World Cup fixtures.',
+    emblem: 'https://crests.football-data.org/qatar.png',
   },
   {
     code: 'PL',
@@ -13,6 +14,7 @@ export const COMPETITIONS = [
     shortName: 'Premier League',
     path: '/competitions/premier-league',
     description: 'Predict final scores for English Premier League fixtures.',
+    emblem: 'https://crests.football-data.org/PL.png',
   },
   {
     code: 'EC',
@@ -20,6 +22,7 @@ export const COMPETITIONS = [
     shortName: 'Euro',
     path: '/competitions/euro',
     description: 'Predict final scores for UEFA European Championship fixtures.',
+    emblem: 'https://crests.football-data.org/2024.png',
   },
 ]
 

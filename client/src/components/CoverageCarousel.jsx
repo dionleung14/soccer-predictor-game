@@ -80,9 +80,9 @@ export default function CoverageCarousel() {
       }}
     >
       <div className="coverage-carousel__intro">
-        <h2>Contests you can predict</h2>
+        <h2>Football contests you can predict</h2>
         <p>
-          Inspired by {' '}
+          Powered by {' '}
           <a
             href="https://www.football-data.org/coverage"
             target="_blank"
@@ -90,7 +90,6 @@ export default function CoverageCarousel() {
           >
             football-data.org
           </a>
-          — leagues and cups spanning clubs, nations, and continents.
         </p>
       </div>
 
@@ -125,7 +124,7 @@ export default function CoverageCarousel() {
                     Open contest
                   </Link>
                 ) : (
-                  <p className="coverage-carousel__soon">Coming soon as a contest</p>
+                  <p className="coverage-carousel__soon">Coming soon</p>
                 )}
               </div>
             </article>

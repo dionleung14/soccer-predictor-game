@@ -627,6 +627,13 @@
   color: var(--text-h);
 }
 
+.wc-matches__emblem {
+  width: 88px;
+  height: 88px;
+  object-fit: contain;
+  margin-bottom: 4px;
+}
+
 .auth-page {
   display: flex;
   justify-content: center;
