@@ -1,15 +1,18 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { COMPETITIONS, getCompetitionByCode } from '../competitions'
 
 export default function LeaguesPage() {
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const initialCompetitionCode =
+    getCompetitionByCode(searchParams.get('competition'))?.code || 'WC'
   const [leagues, setLeagues] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
   const [name, setName] = useState('')
   const [description, setDescription] = useState('')
-  const [competitionCode, setCompetitionCode] = useState('WC')
+  const [competitionCode, setCompetitionCode] = useState(initialCompetitionCode)
   const [creating, setCreating] = useState(false)
   const [createError, setCreateError] = useState(null)
 

@@ -191,6 +191,7 @@ export default function CompetitionMatches({ competition }) {
   const [picksByMatchId, setPicksByMatchId] = useState({})
   const [scoringRules, setScoringRules] = useState(null)
   const [activeLeague, setActiveLeague] = useState(null)
+  const [competitionLeagueStatus, setCompetitionLeagueStatus] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
 
@@ -214,6 +215,21 @@ export default function CompetitionMatches({ competition }) {
     setPicksByMatchId(data.byMatchId || {})
     setScoringRules(data.scoringRules || null)
     setActiveLeague(data.league || null)
+
+    if (!leagueId) {
+      const leaguesRes = await fetch('/api/leagues/mine', {
+        credentials: 'include',
+      })
+      const leaguesData = await leaguesRes.json().catch(() => ({}))
+      if (leaguesRes.ok) {
+        setCompetitionLeagueStatus({
+          code,
+          hasLeague: (leaguesData.leagues || []).some(
+            (league) => league.competitionCode === code,
+          ),
+        })
+      }
+    }
   }
 
   const loadMatches = async () => {
@@ -316,6 +332,20 @@ export default function CompetitionMatches({ competition }) {
               </>
             )}
           </p>
+        )}
+        {isAuthenticated &&
+          !leagueId &&
+          competitionLeagueStatus?.code === code &&
+          !competitionLeagueStatus.hasLeague && (
+          <div>
+            <p>You are not in a league for {name} yet.</p>
+            <Link
+              to={`/leagues?competition=${encodeURIComponent(code)}`}
+              className="counter"
+            >
+              Create a league
+            </Link>
+          </div>
         )}
         {loading && <p>Loading {name} matches…</p>}
         {error && <p className="health-status health-status--error">{error}</p>}
