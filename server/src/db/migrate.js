@@ -3,7 +3,10 @@ import path from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import dotenv from 'dotenv'
 import { getPool, closePool } from './pool.js'
-import { ensureDefaultLeague } from '../leagues/leagueService.js'
+import {
+  ensureDefaultLeague,
+  generateInviteCode,
+} from '../leagues/leagueService.js'
 import { ensureCompetitionSyncRows } from '../fixtures/fixturesService.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -99,6 +102,118 @@ async function ensureFixturesCacheTables(connection) {
   console.log('Migration applied: 005_fixtures_cache')
 }
 
+async function ensureLeagueInvites(connection) {
+  const migrationName = '006_league_invites'
+  const [applied] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM schema_migrations WHERE name = :name`,
+    { name: migrationName },
+  )
+  if (Number(applied[0].cnt) > 0) {
+    return
+  }
+
+  const [inviteCodeCol] = await connection.query(
+    `SELECT COUNT(*) AS cnt
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'leagues'
+       AND COLUMN_NAME = 'invite_code'`,
+  )
+  if (Number(inviteCodeCol[0].cnt) === 0) {
+    await connection.query(
+      `ALTER TABLE leagues
+       ADD COLUMN invite_code VARCHAR(32) NULL AFTER commissioner_user_id,
+       ADD UNIQUE KEY uq_leagues_invite_code (invite_code)`,
+    )
+  }
+
+  await connection.query(`
+    CREATE TABLE IF NOT EXISTS league_invites (
+      id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+      league_id INT UNSIGNED NOT NULL,
+      email VARCHAR(255) NOT NULL,
+      invited_by_user_id INT UNSIGNED NOT NULL,
+      invite_code VARCHAR(32) NOT NULL,
+      status ENUM('pending', 'accepted', 'revoked') NOT NULL DEFAULT 'pending',
+      created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+      accepted_at TIMESTAMP NULL,
+      PRIMARY KEY (id),
+      UNIQUE KEY uq_league_invites_league_email (league_id, email),
+      KEY idx_league_invites_code (invite_code),
+      KEY idx_league_invites_email (email),
+      CONSTRAINT fk_league_invites_league
+        FOREIGN KEY (league_id) REFERENCES leagues (id)
+        ON DELETE CASCADE,
+      CONSTRAINT fk_league_invites_invited_by
+        FOREIGN KEY (invited_by_user_id) REFERENCES users (id)
+        ON DELETE CASCADE
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+  `)
+
+  const [missingCodes] = await connection.query(
+    `SELECT id FROM leagues WHERE invite_code IS NULL OR invite_code = ''`,
+  )
+  for (const row of missingCodes) {
+    let assigned = false
+    for (let attempt = 0; attempt < 10 && !assigned; attempt += 1) {
+      const inviteCode = generateInviteCode()
+      try {
+        await connection.query(
+          `UPDATE leagues SET invite_code = :inviteCode WHERE id = :id`,
+          { inviteCode, id: row.id },
+        )
+        assigned = true
+      } catch {
+        // Unique collision; retry with a new code.
+      }
+    }
+  }
+
+  await connection.query(
+    `INSERT IGNORE INTO schema_migrations (name) VALUES (:name)`,
+    { name: migrationName },
+  )
+  console.log(`Migration applied: ${migrationName}`)
+}
+
+async function ensureLeagueCompetitionCode(connection) {
+  const migrationName = '007_league_competition_code'
+  const [applied] = await connection.query(
+    `SELECT COUNT(*) AS cnt FROM schema_migrations WHERE name = :name`,
+    { name: migrationName },
+  )
+  if (Number(applied[0].cnt) > 0) {
+    return
+  }
+
+  const [col] = await connection.query(
+    `SELECT COUNT(*) AS cnt
+     FROM information_schema.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'leagues'
+       AND COLUMN_NAME = 'competition_code'`,
+  )
+  if (Number(col[0].cnt) === 0) {
+    await connection.query(
+      `ALTER TABLE leagues
+       ADD COLUMN competition_code VARCHAR(16) NOT NULL DEFAULT 'WC'
+         AFTER invite_code,
+       ADD KEY idx_leagues_competition (competition_code)`,
+    )
+  }
+
+  await connection.query(
+    `UPDATE leagues SET competition_code = 'WC'
+     WHERE competition_code IS NULL OR competition_code = ''`,
+  )
+
+  await connection.query(
+    `INSERT IGNORE INTO schema_migrations (name) VALUES (:name)`,
+    { name: migrationName },
+  )
+  console.log(`Migration applied: ${migrationName}`)
+}
+
 async function migrate() {
   const pool = getPool()
   const connection = await pool.getConnection()
@@ -108,6 +223,8 @@ async function migrate() {
     await ensurePasswordHashColumn(connection)
     await ensureFantasyTablesSeeded(connection)
     await ensureFixturesCacheTables(connection)
+    await ensureLeagueInvites(connection)
+    await ensureLeagueCompetitionCode(connection)
     await connection.commit()
     console.log('Migrations up to date')
   } catch (err) {

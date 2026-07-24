@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { useAuth } from '../auth/AuthContext'
 
 const LOCKED_STATUSES = new Set([
@@ -185,24 +185,35 @@ function MatchCard({
 export default function CompetitionMatches({ competition }) {
   const { code, name, description } = competition
   const { isAuthenticated } = useAuth()
+  const [searchParams] = useSearchParams()
+  const leagueId = searchParams.get('leagueId')
   const [matches, setMatches] = useState([])
   const [picksByMatchId, setPicksByMatchId] = useState({})
   const [scoringRules, setScoringRules] = useState(null)
+  const [activeLeague, setActiveLeague] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState(null)
+
+  const picksQuery = leagueId
+    ? `?leagueId=${encodeURIComponent(leagueId)}`
+    : ''
 
   const loadPicks = async () => {
     if (!isAuthenticated) {
       setPicksByMatchId({})
+      setActiveLeague(null)
       return
     }
-    const res = await fetch('/api/predictions/mine/by-match', { credentials: 'include' })
+    const res = await fetch(`/api/predictions/mine/by-match${picksQuery}`, {
+      credentials: 'include',
+    })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
       throw new Error(data.error || `Failed to load picks (${res.status})`)
     }
     setPicksByMatchId(data.byMatchId || {})
     setScoringRules(data.scoringRules || null)
+    setActiveLeague(data.league || null)
   }
 
   const loadMatches = async () => {
@@ -231,25 +242,29 @@ export default function CompetitionMatches({ competition }) {
 
   useEffect(() => {
     loadMatches()
-    // Reload whenever the competition changes.
+    // Reload whenever the competition or league context changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [code])
+  }, [code, leagueId])
 
   useEffect(() => {
     if (!isAuthenticated) {
       setPicksByMatchId({})
+      setActiveLeague(null)
       return
     }
     loadPicks().catch((err) => setError(err.message))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, code])
+  }, [isAuthenticated, code, leagueId])
 
   const savePick = async (payload) => {
     const res = await fetch('/api/predictions', {
       method: 'PUT',
       credentials: 'include',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
+      body: JSON.stringify({
+        ...payload,
+        ...(leagueId ? { leagueId: Number(leagueId) } : {}),
+      }),
     })
     const data = await res.json().catch(() => ({}))
     if (!res.ok) {
@@ -262,6 +277,10 @@ export default function CompetitionMatches({ competition }) {
     return data.prediction
   }
 
+  const picksLink = leagueId
+    ? `/picks?leagueId=${encodeURIComponent(leagueId)}`
+    : '/picks'
+
   return (
     <section className="wc-matches">
       <div className="wc-matches__intro">
@@ -270,9 +289,32 @@ export default function CompetitionMatches({ competition }) {
         <p className="match-card__pick-hint">
           Enter a final score for each fixture. Picks lock at kickoff.
         </p>
+        {activeLeague && (
+          <p className="match-card__pick-hint">
+            Scoring for league:{' '}
+            <Link to={`/leagues/${activeLeague.slug}`}>
+              <strong>{activeLeague.name}</strong>
+            </Link>
+            {activeLeague.competitionCode &&
+              activeLeague.competitionCode !== code && (
+                <>
+                  {' '}
+                  — this league is for {activeLeague.competitionCode}, not {code}.
+                  Open the correct tournament from the{' '}
+                  <Link to={`/leagues/${activeLeague.slug}`}>league hub</Link>.
+                </>
+              )}
+          </p>
+        )}
         {isAuthenticated && (
           <p>
-            <Link to="/picks">View all my picks</Link>
+            <Link to={picksLink}>View all my picks</Link>
+            {activeLeague && (
+              <>
+                {' · '}
+                <Link to={`/leagues/${activeLeague.slug}`}>League hub</Link>
+              </>
+            )}
           </p>
         )}
         {loading && <p>Loading {name} matches…</p>}

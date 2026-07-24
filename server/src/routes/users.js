@@ -4,6 +4,10 @@ import { getPool } from '../db/pool.js'
 import { hashPassword, validatePassword } from '../auth/password.js'
 import { EmailSendError, sendSignupEmail } from '../email/mailer.js'
 import { mapUser, normalizeEmail } from '../users/userMapper.js'
+import {
+  ensureDefaultLeague,
+  ensureLeagueMembership,
+} from '../leagues/leagueService.js'
 
 export const usersRouter = Router()
 
@@ -101,8 +105,12 @@ usersRouter.post('/signup', signupLimiter, async (req, res, next) => {
       },
     )
 
+    const userId = result.insertId
+    const defaultLeagueId = await ensureDefaultLeague()
+    await ensureLeagueMembership(defaultLeagueId, userId, 'member')
+
     res.status(201).json({
-      id: result.insertId,
+      id: userId,
       firstName: trimmedFirstName,
       lastName: trimmedLastName,
       screenName: trimmedScreenName,

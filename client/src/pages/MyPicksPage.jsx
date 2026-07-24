@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 function formatDate(iso) {
   if (!iso) return 'Kickoff TBD'
@@ -13,6 +13,8 @@ function formatDate(iso) {
 }
 
 export default function MyPicksPage() {
+  const [searchParams] = useSearchParams()
+  const leagueId = searchParams.get('leagueId')
   const [league, setLeague] = useState(null)
   const [predictions, setPredictions] = useState([])
   const [loading, setLoading] = useState(true)
@@ -24,7 +26,12 @@ export default function MyPicksPage() {
       setLoading(true)
       setError(null)
       try {
-        const res = await fetch('/api/predictions/mine', { credentials: 'include' })
+        const query = leagueId
+          ? `?leagueId=${encodeURIComponent(leagueId)}`
+          : ''
+        const res = await fetch(`/api/predictions/mine${query}`, {
+          credentials: 'include',
+        })
         const data = await res.json().catch(() => ({}))
         if (!res.ok) {
           throw new Error(data.error || `Failed to load picks (${res.status})`)
@@ -44,7 +51,7 @@ export default function MyPicksPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [leagueId])
 
   return (
     <section className="picks-page">
@@ -52,7 +59,10 @@ export default function MyPicksPage() {
         <h1>My picks</h1>
         {league && (
           <p>
-            League: <strong>{league.name}</strong>
+            League:{' '}
+            <Link to={`/leagues/${league.slug}`}>
+              <strong>{league.name}</strong>
+            </Link>
             {league.scoringRules && (
               <>
                 {' '}
@@ -63,6 +73,8 @@ export default function MyPicksPage() {
           </p>
         )}
         <p>
+          <Link to="/leagues">All leagues</Link>
+          {' · '}
           <Link to="/">Back to matches</Link>
         </p>
       </div>
@@ -72,7 +84,8 @@ export default function MyPicksPage() {
 
       {!loading && !error && predictions.length === 0 && (
         <p>
-          No picks yet. Load World Cup matches on the <Link to="/">home page</Link> and
+          No picks yet for this league. Open a competition from the{' '}
+          <Link to={league ? `/leagues/${league.slug}` : '/'}>league hub</Link> and
           submit scorelines.
         </p>
       )}

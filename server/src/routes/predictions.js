@@ -2,10 +2,9 @@ import { Router } from 'express'
 import { requireAuth } from '../middleware/requireAuth.js'
 import { getPool } from '../db/pool.js'
 import {
-  ensureDefaultLeague,
-  ensureLeagueMembership,
-  getDefaultLeague,
+  getLeagueById,
   getLeagueScoringRules,
+  resolveLeagueIdForUser,
   scorePrediction,
 } from '../leagues/leagueService.js'
 
@@ -51,8 +50,13 @@ function validateScore(value, field) {
 
 predictionsRouter.get('/mine', requireAuth, async (req, res, next) => {
   try {
-    const league = await getDefaultLeague()
-    await ensureLeagueMembership(league.id, req.session.userId)
+    const leagueId = await resolveLeagueIdForUser(
+      req.query.leagueId,
+      req.session.userId,
+    )
+    const league = await getLeagueById(leagueId, {
+      viewerUserId: req.session.userId,
+    })
 
     const pool = getPool()
     const [rows] = await pool.query(
@@ -60,7 +64,7 @@ predictionsRouter.get('/mine', requireAuth, async (req, res, next) => {
        FROM match_predictions
        WHERE league_id = :leagueId AND user_id = :userId
        ORDER BY match_kickoff_at IS NULL, match_kickoff_at ASC, updated_at DESC`,
-      { leagueId: league.id, userId: req.session.userId },
+      { leagueId, userId: req.session.userId },
     )
 
     res.json({
@@ -68,21 +72,30 @@ predictionsRouter.get('/mine', requireAuth, async (req, res, next) => {
       predictions: rows.map(mapPrediction),
     })
   } catch (err) {
+    if (err.status) {
+      res.status(err.status).json({ error: err.message })
+      return
+    }
     next(err)
   }
 })
 
 predictionsRouter.get('/mine/by-match', requireAuth, async (req, res, next) => {
   try {
-    const league = await getDefaultLeague()
-    await ensureLeagueMembership(league.id, req.session.userId)
+    const leagueId = await resolveLeagueIdForUser(
+      req.query.leagueId,
+      req.session.userId,
+    )
+    const league = await getLeagueById(leagueId, {
+      viewerUserId: req.session.userId,
+    })
 
     const pool = getPool()
     const [rows] = await pool.query(
       `SELECT *
        FROM match_predictions
        WHERE league_id = :leagueId AND user_id = :userId`,
-      { leagueId: league.id, userId: req.session.userId },
+      { leagueId, userId: req.session.userId },
     )
 
     const byMatchId = {}
@@ -91,11 +104,16 @@ predictionsRouter.get('/mine/by-match', requireAuth, async (req, res, next) => {
     }
 
     res.json({
-      leagueId: league.id,
-      scoringRules: league.scoringRules,
+      leagueId,
+      league,
+      scoringRules: league?.scoringRules || null,
       byMatchId,
     })
   } catch (err) {
+    if (err.status) {
+      res.status(err.status).json({ error: err.message })
+      return
+    }
     next(err)
   }
 })
@@ -111,6 +129,7 @@ predictionsRouter.put('/', requireAuth, async (req, res, next) => {
       matchKickoffAt,
       competitionCode,
       matchStatus,
+      leagueId: bodyLeagueId,
     } = req.body ?? {}
 
     if (externalMatchId == null || !homeTeamName || !awayTeamName) {
@@ -137,8 +156,31 @@ predictionsRouter.put('/', requireAuth, async (req, res, next) => {
       return
     }
 
-    const leagueId = await ensureDefaultLeague()
-    await ensureLeagueMembership(leagueId, req.session.userId)
+    const leagueId = await resolveLeagueIdForUser(
+      bodyLeagueId ?? req.query.leagueId,
+      req.session.userId,
+    )
+    const league = await getLeagueById(leagueId, {
+      viewerUserId: req.session.userId,
+    })
+    if (!league) {
+      res.status(404).json({ error: 'League not found' })
+      return
+    }
+
+    const resolvedCompetition = String(
+      competitionCode || league.competitionCode || 'WC',
+    )
+      .trim()
+      .toUpperCase()
+      .slice(0, 16)
+
+    if (resolvedCompetition !== league.competitionCode) {
+      res.status(400).json({
+        error: `This league only accepts picks for ${league.competitionCode}`,
+      })
+      return
+    }
 
     const pool = getPool()
     await pool.query(
@@ -162,7 +204,7 @@ predictionsRouter.put('/', requireAuth, async (req, res, next) => {
         leagueId,
         userId: req.session.userId,
         externalMatchId: Number(externalMatchId),
-        competitionCode: String(competitionCode || 'WC').slice(0, 16),
+        competitionCode: resolvedCompetition,
         homeTeamName: String(homeTeamName).slice(0, 120),
         awayTeamName: String(awayTeamName).slice(0, 120),
         matchKickoffAt: matchKickoffAt ? new Date(matchKickoffAt) : null,
@@ -186,6 +228,10 @@ predictionsRouter.put('/', requireAuth, async (req, res, next) => {
 
     res.json({ prediction: mapPrediction(rows[0]) })
   } catch (err) {
+    if (err.status) {
+      res.status(err.status).json({ error: err.message })
+      return
+    }
     next(err)
   }
 })
@@ -196,10 +242,18 @@ predictionsRouter.put('/', requireAuth, async (req, res, next) => {
  */
 predictionsRouter.post('/score-preview', requireAuth, async (req, res, next) => {
   try {
-    const { predictedHomeScore, predictedAwayScore, actualHomeScore, actualAwayScore, leagueId } =
-      req.body ?? {}
+    const {
+      predictedHomeScore,
+      predictedAwayScore,
+      actualHomeScore,
+      actualAwayScore,
+      leagueId,
+    } = req.body ?? {}
 
-    const resolvedLeagueId = leagueId ? Number(leagueId) : await ensureDefaultLeague()
+    const resolvedLeagueId = await resolveLeagueIdForUser(
+      leagueId,
+      req.session.userId,
+    )
     const rules = await getLeagueScoringRules(resolvedLeagueId)
     const result = scorePrediction(
       { home: Number(predictedHomeScore), away: Number(predictedAwayScore) },
@@ -213,6 +267,10 @@ predictionsRouter.post('/score-preview', requireAuth, async (req, res, next) => 
       ...result,
     })
   } catch (err) {
+    if (err.status) {
+      res.status(err.status).json({ error: err.message })
+      return
+    }
     next(err)
   }
 })

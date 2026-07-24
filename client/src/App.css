@@ -890,6 +890,266 @@
   }
 }
 
+.leagues-page {
+  max-width: 840px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+  box-sizing: border-box;
+  text-align: left;
+
+  h1,
+  h2,
+  h3 {
+    color: var(--text-h);
+  }
+
+  h1 {
+    margin: 0 0 8px;
+  }
+
+  h2 {
+    margin: 0 0 12px;
+    font-size: 1.25rem;
+  }
+
+  h3 {
+    margin: 0 0 8px;
+    font-size: 1rem;
+  }
+
+  a {
+    color: var(--accent);
+  }
+
+  label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 12px;
+    font-size: 14px;
+    color: var(--text-h);
+  }
+
+  select {
+    font: inherit;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text-h);
+  }
+
+  input,
+  textarea {
+    font: inherit;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: var(--bg);
+    color: var(--text-h);
+  }
+}
+
+.leagues-page__intro {
+  margin-bottom: 28px;
+
+  p {
+    margin: 0 0 8px;
+    color: var(--text);
+  }
+}
+
+.leagues-page__crumb {
+  font-size: 14px;
+}
+
+.leagues-optional {
+  color: var(--text);
+  font-weight: 400;
+}
+
+.leagues-create,
+.leagues-list {
+  margin-bottom: 36px;
+  padding-bottom: 28px;
+  border-bottom: 1px solid var(--border);
+}
+
+.leagues-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.leagues-list__card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-decoration: none;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+
+  strong {
+    color: var(--text-h);
+  }
+
+  span {
+    font-size: 14px;
+    color: var(--text);
+  }
+
+  &:hover {
+    border-color: var(--accent-border);
+  }
+}
+
+.league-hub {
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.league-panel {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+
+  > p {
+    margin: 0 0 12px;
+    color: var(--text);
+  }
+}
+
+.league-pick-links,
+.league-members {
+  list-style: none;
+  margin: 0 0 12px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.league-pick-links a,
+.league-pick-cta {
+  font-weight: 600;
+}
+
+.league-pick-cta {
+  display: inline-flex;
+  text-decoration: none;
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--accent-border);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+
+.league-members li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 14px;
+
+  span {
+    color: var(--text);
+  }
+}
+
+.league-standings {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+
+  th,
+  td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th {
+    color: var(--text);
+    font-weight: 600;
+  }
+
+  td {
+    color: var(--text-h);
+  }
+}
+
+.league-panel--commissioner {
+  background:
+    linear-gradient(180deg, rgba(34, 98, 68, 0.06), transparent 48%);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 20px;
+}
+
+.commissioner-block {
+  margin-bottom: 24px;
+
+  .health-status {
+    margin: 8px 0 0;
+  }
+
+  .counter {
+    margin-bottom: 0;
+  }
+}
+
+.commissioner-link {
+  word-break: break-all;
+  font-family: var(--mono);
+  font-size: 13px;
+  padding: 10px 12px;
+  border: 1px dashed var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-h);
+}
+
+.commissioner-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.commissioner-block--danger {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+
+  p {
+    margin: 0 0 12px;
+    color: var(--text);
+    font-size: 14px;
+  }
+}
+
+.counter--danger {
+  color: var(--color-terracotta);
+  background: color-mix(in srgb, var(--color-terracotta) 12%, transparent);
+  border-color: transparent;
+
+  &:hover:not(:disabled) {
+    border-color: var(--color-terracotta);
+  }
+}
+
+.scoring-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
 .picks-list {
   display: flex;
   flex-direction: column;
